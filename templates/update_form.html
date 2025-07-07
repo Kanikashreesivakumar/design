@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Update Record</title>
+<style>
+    body {
+        font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+        background: url("{{ url_for('static', filename='b.jpg') }}") center center fixed no-repeat;
+        background-size: cover;
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+    }
+
+    .container {
+        max-width: 900px;           
+        min-height: 600px;          
+        background: rgba(255,255,255,0.97);
+        margin: 60px auto 0 auto;  
+        padding: 48px 60px 40px 60px;
+        border-radius: 28px;
+        box-shadow: 0 12px 48px 0 rgba(31, 38, 135, 0.18);
+        border: 2.5px solid #e0eafc;
+        position: relative;
+        animation: fadeIn 0.8s;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(30px);}
+        to { opacity: 1; transform: translateY(0);}
+    }
+
+    h2 {
+        text-align: center;
+        margin-bottom: 28px;
+        color: #2c3e50;
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: 1px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 18px;
+    }
+
+    .form-group label {
+        margin-bottom: 6px;
+        font-weight: 600;
+        color: #2c3e50;
+        letter-spacing: 0.2px;
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="date"],
+    .form-group select {
+        padding: 10px 12px;
+        border-radius: 7px;
+        border: 1.5px solid #b2bec3;
+        font-size: 15px;
+        background: #fafdff;
+        transition: border 0.2s;
+        outline: none;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+        border: 1.5px solid #0099ff;
+        background: #f0f8ff;
+    }
+
+    .checkpoint-entry {
+        background: linear-gradient(120deg, #fafdff 0%, #e0eafc 100%);
+        padding: 18px 14px;
+        border-radius: 12px;
+        margin-bottom: 18px;
+        box-shadow: 0 2px 12px 0 rgba(44, 62, 80, 0.07);
+        border: 1.5px solid #e0eafc;
+    }
+
+    .btn-group {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 18px;
+    }
+
+    button {
+        padding: 10px 22px;
+        border: none;
+        border-radius: 7px;
+        background: linear-gradient(90deg, #0099ff 0%, #2f8cca 100%);
+        color: white;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(44, 62, 80, 0.08);
+        transition: background 0.2s, transform 0.2s;
+    }
+
+    button:hover {
+        background: linear-gradient(90deg, #2f8cca 0%, #0099ff 100%);
+        transform: translateY(-2px) scale(1.03);
+    }
+
+    a button {
+        background: linear-gradient(90deg, #6c757d 0%, #b2bec3 100%);
+    }
+
+    a button:hover {
+        background: linear-gradient(90deg, #5a6268 0%, #8395a7 100%);
+    }
+
+    .info {
+        color: #0099ff;
+        font-size: 15px;
+        margin-bottom: 10px;
+        font-weight: 500;
+    }
+
+    .warning {
+        color: #e9311d;
+        font-weight: bold;
+        margin-bottom: 10px;
+        font-size: 15px;
+    }
+
+  
+    .checkbox-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 10px;
+    }
+   .concern-input{
+   margin-left:10px;
+   }
+
+    .checkbox-header-row {
+        display: flex;
+        font-weight: bold;
+        padding: 8px 0;
+        border-bottom: 1px solid #ccc;
+        margin-bottom: 8px;
+        color: #2c3e50;
+        background: #fafdff;
+        border-radius: 6px 6px 0 0;
+    }
+
+    .checkbox-row {
+        display: flex;
+        align-items: center;
+        gap: 60px;
+        padding: 8px 0;
+    }
+
+    .checkbox-col {
+        flex: 2;
+        display: flex;
+        align-items: center;
+    }
+
+    .checkbox-col input[type="checkbox"] {
+        margin-right: 8px;
+        accent-color: #0099ff;
+    }
+
+    .concern-col, .action-col {
+        flex: 1;
+    }
+
+    .concern-col input, .action-col select {
+        width: 100%;
+        padding: 7px;
+        border-radius: 5px;
+        border: 1px solid #b2bec3;
+        background: #fafdff;
+        font-size: 14px;
+    }
+
+  
+    .popup-form {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 24px 20px 18px 20px;
+        border-radius: 14px;
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.18);
+        z-index: 1000;
+        width: 320px;
+        border: 2px solid #e0eafc;
+    }
+
+    .popup-form h3 {
+        color: #2c3e50;
+        font-size: 18px;
+        margin-bottom: 15px;
+    }
+
+    .popup-form input[type="text"] {
+        padding: 8px;
+        border-radius: 5px;
+        border: 1.5px solid #b2bec3;
+        font-size: 14px;
+        width: 100%;
+        margin-bottom: 10px;
+    }
+
+    .popup-form button {
+        padding: 8px 16px;
+        font-size: 14px;
+        border-radius: 6px;
+    }
+
+    
+    @media (max-width: 768px) {
+        .container {
+            padding: 10px 2vw;
+        }
+
+        .checkbox-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .checkbox-col, .concern-col, .action-col {
+            width: 100%;
+        }
+
+        .btn-group {
+            flex-direction: column;
+            gap: 10px;
+        }
+    }
+</style>
+</head>
+
+<script>
+   
+    function openRFIDPopup() {
+        document.getElementById('rfidPopup').style.display = 'block';
+        document.getElementById('rfidInput').value = '';
+        setTimeout(() => {
+            document.getElementById('rfidInput').focus();
+        }, 100);
+    }
+
+    function closeRFIDPopup() {
+        document.getElementById('rfidPopup').style.display = 'none';
+    }
+
+    function submitRFID() {
+        const rfid = document.getElementById('rfidInput').value.trim();
+        if (!rfid) return;
+
+        fetch(`/get_username/${rfid}`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('user_name').value = data.user_name;
+                closeRFIDPopup();
+            })
+            .catch(err => {
+                alert("Error reading RFID. Please try again.");
+                console.error(err);
+            });
+    }
+    document.getElementById("rfidInput").addEventListener("keydown", function(event) {
+        if (event.key === "Enter") {
+            event.preventDefault(); 
+            submitRFID();
+        }
+    });
+
+    function getTrolleyCategory() {
+        const selectElement = document.querySelector('select[name="trolley_category"]');
+        if (selectElement) return selectElement.value;
+
+        const inputElement = document.querySelector('input[name="trolley_category"]');
+        if (inputElement) return inputElement.value;
+
+        return "";
+    }
+
+    function updateRemarksDropdown() {
+        const trolleyCategory = getTrolleyCategory();
+        const remarksDropdown = document.getElementById('tpm_category');
+        const currentValue = remarksDropdown.value;
+
+        const previousDateInput = document.querySelector('input[name="previous_completed_date"]');
+        const isUidAssigned = previousDateInput && previousDateInput.readOnly;
+
+        remarksDropdown.innerHTML = '<option value="">Select</option>';
+
+        if (isUidAssigned) {
+            remarksDropdown.innerHTML += `<option value="Repair">Repair</option>`;
+        } else if (trolleyCategory === "Synchro") {
+            remarksDropdown.innerHTML += `
+                <option value="Complete Check For Synchro">Complete Check</option>
+                <option value="Repair">Repair</option>
+            `;
+        } else {
+            remarksDropdown.innerHTML += `
+                <option value="Primary Check">Primary Check</option>
+                <option value="Complete Check">Complete Check</option>
+                <option value="Repair">Repair</option>
+            `;
+        }
+
+        if (remarksDropdown.querySelector(`option[value="${currentValue}"]`)) {
+            remarksDropdown.value = currentValue;
+        }
+
+        updateCheckpoints();
+    }
+
+    function createCheckboxItem(item, index, isRepair = false) {
+        const uniqueId = Date.now() + Math.floor(Math.random() * 1000);
+        const checkboxId = `cp_${uniqueId}`;
+        const actionId = `action_${uniqueId}`;
+        const concernId = `concern_${uniqueId}`;
+
+        const actionOptions = isRepair
+            ? `
+                <option value="">Select</option>
+                <option value="Ng_Replaced">NG - Replaced</option>
+                <option value="Ng_Repaired">NG - Repaired</option>
+            `
+            : `
+                <option value="">Select</option>
+                <option value="Condition OK">Condition OK</option>
+                <option value="Ng_Replaced">NG - Replaced</option>
+                <option value="Ng_Repaired">NG - Repaired</option>
+            `;
+
+        return `
+            <div class="checkbox-row" data-group-id="${uniqueId}">
+                <div class="checkbox-col">
+                    <input type="checkbox" name="check_points[${uniqueId}]" value="${item}" id="${checkboxId}" onchange="toggleActionTaken(this)">
+                    <label for="${checkboxId}">${item}</label>
+                </div>
+                <div class="concern-col">
+                    <input type="text" name="concerns[${uniqueId}]" id="${concernId}" class="concern-input" placeholder="Concern" style="display: none;">
+                </div>
+                <div class="action-col">
+                    <select name="actions_taken[${uniqueId}]" id="${actionId}" class="action-taken-input" style="display: none;">
+                        ${actionOptions}
+                    </select>
+                </div>
+            </div>
+        `;
+    }
+
+    function toggleActionTaken(checkbox) {
+        const row = checkbox.closest('.checkbox-row');
+        const uniqueId = row.dataset.groupId;
+        const actionInput = document.getElementById(`action_${uniqueId}`);
+        const concernInput = document.getElementById(`concern_${uniqueId}`);
+
+        if (checkbox.checked) {
+            actionInput.style.display = 'block';
+            actionInput.required = true;
+            concernInput.style.display = 'block';
+            concernInput.required = false;
+        } else {
+            actionInput.style.display = 'none';
+            actionInput.required = false;
+            concernInput.style.display = 'none';
+            concernInput.required = false;
+        }
+    }
+
+    function getCheckpointHTML(remark, trolleyCategory) {
+        let checkboxes = '';
+
+        if (remark === 'Primary Check' || (remark === 'Complete Check' && trolleyCategory !== 'Synchro')) {
+            const primaryItems = [
+                "Check the bearings",
+                "Check front wheels",
+                "Check rear wheels",
+                "Check Guide wheel",
+                "Nylon supports",
+                "Protective elements for parts",
+                "Check safety locks for part holding"
+            ];
+
+            const completeItems = [
+                "General inspection",
+                "Cart structure",
+                "Bolted joints",
+                "Check AGV lock / Foot pedal",
+                "Check front trolley hook",
+                "Check rear trolley Hook",
+                "Trolley Painting"
+            ];
+
+            checkboxes = primaryItems.map((item, index) => createCheckboxItem(item, index)).join('');
+
+            if (remark === 'Complete Check') {
+                checkboxes += completeItems.map((item, index) =>
+                    createCheckboxItem(item, index + primaryItems.length)).join('');
+            }
+        } else if (remark === 'Complete Check For Synchro' && trolleyCategory === 'Synchro') {
+            const synchroItems = [
+                "Clean the dolly with cotton waste",
+                "Remove unwanted markings with IP",
+                "Inspect CCR Number plate",
+                "Replace foam/protector if damaged",
+                "Grease bearings for swivel and stationary wheels",
+                "Check all wheels rotate freely",
+                "Inspect guide wheel condition",
+                "Tighten and mark moving/guide wheel bolts",
+                "Inspect tow hook condition"
+            ];
+
+            checkboxes = synchroItems.map((item, index) => createCheckboxItem(item, index)).join('');
+        } else if (remark === 'Repair') {
+            const repairItems = [
+                "Bearings Issue",
+                "Front Wheels Issue",
+                "Rear Wheels Issue",
+                "Guide Wheel Issue",
+                "Nylon Supports Issue",
+                "Protective Elements For Parts Issue",
+                "Safety Locks For Part Holding Issue",
+                "General Inspection Issue",
+                "Cart Structure Issue",
+                "Bolted Joints Issue",
+                "AGV Lock/Foot Pedal Issue",
+                "Front Trolley Hook Issue",
+                "Rear Trolley Hook Issue",
+                "Trolley Painting Issue"
+            ];
+
+            checkboxes = repairItems.map((item, index) => createCheckboxItem(item, index, true)).join('');
+        }
+
+        const checkpointInput = `
+            <div class="checkbox-container">
+                <div class="checkbox-header-row">
+                    <div class="checkbox-col">Check Point</div>
+                    <div class="concern-col">Concern</div>
+                    <div class="action-col">Action Taken</div>
+                </div>
+                ${checkboxes}
+            </div>
+        `;
+
+        return checkpointInput;
+    }
+
+    function updateCheckpoints() {
+        const remark = document.getElementById('tpm_category').value;
+        const trolleyCategory = getTrolleyCategory();
+        const checkpointsContainer = document.getElementById('checkpoints-container');
+        checkpointsContainer.innerHTML = '';
+
+        if (!remark) return;
+
+        const checkpointEntry = document.createElement('div');
+        checkpointEntry.classList.add('checkpoint-entry');
+        checkpointEntry.innerHTML = getCheckpointHTML(remark, trolleyCategory);
+
+        checkpointsContainer.appendChild(checkpointEntry);
+    }
+
+    function addCheckpoint() {
+        const remark = document.getElementById('tpm_category').value;
+        const trolleyCategory = getTrolleyCategory();
+        const container = document.getElementById('checkpoints-container');
+
+        if (!remark) {
+            alert("Please select a remark before adding a checkpoint.");
+            return;
+        }
+
+        const newEntry = document.createElement('div');
+        newEntry.className = 'checkpoint-entry';
+        newEntry.innerHTML = getCheckpointHTML(remark, trolleyCategory);
+
+        container.appendChild(newEntry);
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const trolleySelect = document.querySelector('select[name="trolley_category"]');
+        if (trolleySelect) {
+            trolleySelect.addEventListener('change', updateRemarksDropdown);
+        }
+
+        const trolleyInput = document.querySelector('input[name="trolley_category"]');
+        if (trolleyInput) {
+            trolleyInput.addEventListener('change', updateRemarksDropdown);
+        }
+
+        updateRemarksDropdown();
+    });
+ 
+document.querySelector('form').addEventListener('submit', function(e) {
+
+    const checkPoints = Array.from(document.querySelectorAll('[name^="check_points["]')).map(el => el.value.trim()).filter(Boolean);
+    const concerns = Array.from(document.querySelectorAll('[name^="concerns["]')).map(el => el.value.trim()).filter(Boolean);
+    const actions = Array.from(document.querySelectorAll('[name^="actions_taken["]')).map(el => el.value.trim()).filter(Boolean);
+
+
+    let cp = document.getElementById('check_point');
+    let cc = document.getElementById('concern');
+    let ac = document.getElementById('action_taken');
+    if (!cp) {
+        cp = document.createElement('input');
+        cp.type = 'text';
+        cp.name = 'check_point';
+        cp.id = 'visible_check_point';
+        cp.readOnly = true; 
+        this.appendChild(cp);
+    }
+    if (!cc) {
+        cc = document.createElement('input');
+        cc.type = 'text';
+        cc.name = 'concern';
+        cc.id = 'visible_concern';
+        cc.readOnly = true;
+        this.appendChild(cc);
+    }
+    if (!ac) {
+        ac = document.createElement('input');
+        ac.type = 'text'; 
+        ac.name = 'action_taken';
+        ac.id = 'visible_action_taken';
+        ac.readOnly = true;
+        this.appendChild(ac);
+    }
+    cp.value = checkPoints.join(',');
+    cc.value = concerns.join(',');
+    ac.value = actions.join(',');
+});
+</script>
+
+<body>
+<div style="
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-top: 24px;
+    margin-bottom: 18px;
+    background: rgba(255,255,255,0.96);
+    border-radius: 18px;
+    box-shadow: 0 4px 18px 0 rgba(44, 62, 80, 0.10);
+    padding: 12px 24px;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+">
+  <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" style="height:150px;object-fit:contain; margin-right: 16px;">
+  <h1 class="top_heading" style="margin: 0; color: #5eaadd; font-size: 1.75rem;">
+    RENAULT NISSAN <br/> AUTOMOTIVE INDIA PRIVATE LIMITED
+  </h1>
+</div>
+
+<div class="container">
+    <h2>Update Record for Trolley: {{ record.trolley_name }} (UID: {{ record.uid }})</h2>
+
+    {% if record.days_left is not none %}
+        <p class="{% if record.days_left <= 7 %}warning{% else %}info{% endif %}">
+            Days left until expiry: {{ record.days_left }}
+        </p>
+        {% if is_near_expiry %}
+            <p class="warning">⚠️ This trolley's check is expiring soon. You may want to select.</p>
+        {% endif %}
+    {% else %}
+        <p class="info">No expiry date set</p>
+    {% endif %}
+    {% if next_check_type %}
+        <p class="info">Next required check: {{ next_check_type }}</p>
+    {% endif %}
+
+    <form method="post">
+        <div class="form-group">
+            <label>Trolley Category:</label>
+            {% if allow_edit_trolley %}
+                <select name="trolley_category" required class="form-control">
+                    <option value="">Select</option>
+                    <option value="Kitkart" {% if record.trolley_category == 'kitkart' %}selected{% endif %}>Kitkart</option>
+                    <option value="Synchro" {% if record.trolley_category == 'synchro' %}selected{% endif %}>Synchro</option>
+                </select>
+            {% else %}
+                
+                <input type="text" class="form-control" value="{{ record.trolley_category }}" readonly>
+               
+                <input type="hidden" name="trolley_category" value="{{ record.trolley_category }}">
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label>Previous Completed Date:</label>
+            {% if edit_previous_completed %}
+                <input type="date" name="previous_completed_date" value="{{ record.previous_completed_date }}" required>
+            {% else %}
+                <input type="text" name="previous_completed_date" value="{{ record.previous_completed_date }}" readonly>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label>TPM Category:</label>
+            <select name="tpm_category" id="tpm_category" required onchange="updateCheckpoints()">
+                <option value="">Select</option>
+                {% if allow_all_remarks %}
+                 
+                    <option value="Primary Check" {% if current_remark == 'primary check' %}selected{% endif %}>Primary Check</option>
+                    <option value="Complete Check" {% if current_remark == 'complete check' %}selected{% endif %}>Complete Check</option>
+                    <option value="Repair" {% if current_remark == 'repair' %}selected{% endif %}>Repair</option>
+                {% else %}
+                 
+                    <option value="Repair" {% if current_remark == 'repair' %}selected{% endif %}>Repair</option>
+                {% endif %}
+            </select>
+        </div>
+
+        <div id="checkpoints-container">
+           
+        </div>
+
+        
+        <div class="form-group">
+            <label>User Name:</label>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" name="user_name" id="user_name" readonly required style="flex: 1;">
+                <button type="button" onclick="openRFIDPopup()">Scan RFID</button>
+            </div>
+        </div>
+  <div class="btn-group">
+            <button type="submit">Save</button>
+            <a href="/records"><button type="button">Cancel</button></a>
+        </div>
+
+    </form>
+    <div class="popup-form" id="rfidPopup">
+            <h3 style="margin-top: 0; margin-bottom: 15px;">Scan your RFID</h3>
+            <input type="text" id="rfidInput" placeholder="Scan here..." style="width: 100%; margin-bottom: 10px;">
+
+            <div style="text-align: right;">
+                <button type="button" onclick="submitRFID()" style="margin-right: 10px;">Submit</button>
+                <button type="button" onclick="closeRFIDPopup()">Cancel</button>
+            </div>
+        </div>
+
+
+</div>
+</body>
+</html>

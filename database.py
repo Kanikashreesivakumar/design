@@ -34,7 +34,7 @@ PORT = 9000
 def create_tables():
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    # rfid_log table
+   
     c.execute('''CREATE TABLE IF NOT EXISTS rfid_log (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         uid TEXT,
@@ -52,17 +52,17 @@ def create_tables():
         check_point TEXT,
         concern TEXT
     )''')
-    # uid_number table
+
     c.execute('''CREATE TABLE IF NOT EXISTS uid_number (
         uid TEXT PRIMARY KEY,
         trolley_id TEXT
     )''')
-    # usernames table
+
     c.execute('''CREATE TABLE IF NOT EXISTS usernames (
         rfid TEXT PRIMARY KEY,
         name TEXT
     )''')
-    # repair_log table
+
     c.execute('''CREATE TABLE IF NOT EXISTS repair_log (
         id INTEGER PRIMARY KEY,
         trolley_number TEXT,
@@ -77,7 +77,7 @@ def create_tables():
     conn.commit()
     conn.close()
 
-# Helper functions for DB operations
+
 
 def insert_rfid_log(data):
     conn = sqlite3.connect(DB_FILE)
@@ -153,7 +153,9 @@ def log_rfid_entry(uid, user_name=None):
         remaining = timedelta(hours=24) - (now - latest_entry_datetime)
         print(f"UID {uid} scanned within 24 hours. Entry denied. Try again after: {remaining}.")
         return
-    # Get next Auto-ID is handled by AUTOINCREMENT
+  
+
+  
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute('SELECT trolley_id FROM uid_number WHERE uid=?', (uid,))

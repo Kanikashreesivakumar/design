@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Repair Log</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --success-color: #27ae60;
+            --light-bg: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: url("{{ url_for('static', filename='b.jpg') }}") center center fixed no-repeat ;
+            background-size: cover;
+            min-height: 100vh;
+            position: relative;
+            z-index: 0;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #fff; 
+            opacity: 0.9;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .form-label{
+            font-weight: 500;
+        color: #333;
+        }
+        .full-width-container {
+            width: 100%;
+            padding: 20px;
+            margin: 0;
+            
+            min-height: 100vh;
+        }
+
+        .content-container {
+            max-width: 95%; /* Increased from 1800px to use more screen space */
+            width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        h2 {
+            color: var(--secondary-color);
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        /* Enhanced table container for better visibility */
+        .table-container {
+            width: 100%;
+            margin: 20px 0;
+            padding: 0;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            position: relative;
+            z-index: 3;
+        }
+
+        .table-responsive {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
+            overflow-y: visible;
+            background: white;
+            border-radius: 12px;
+            padding: 0;
+            margin: 0;
+            /* Enhanced scrollbar styling */
+            scrollbar-width: thin;
+            scrollbar-color: #3498db #f1f1f1;
+        }
+
+        /* Custom scrollbar for WebKit browsers */
+        .table-responsive::-webkit-scrollbar {
+            height: 12px;
+            width: 12px;
+        }
+
+        .table-responsive::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .table-responsive::-webkit-scrollbar-thumb {
+            background: linear-gradient(90deg, #3498db 0%, #2980b9 100%);
+            border-radius: 10px;
+            border: 2px solid #f1f1f1;
+        }
+
+        .table-responsive::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(90deg, #2980b9 0%, #21618c 100%);
+        }
+
+        /* Enhanced table styling */
+        .table {
+            margin: 0;
+            width: 100%;
+            min-width: 800px; /* Minimum width to ensure readability */
+            background: white;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.95rem;
+        }
+
+        .table thead {
+            background: linear-gradient(135deg, var(--secondary-color) 0%, #34495e 100%);
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 4;
+        }
+
+        .table th {
+            font-weight: 600;
+            text-transform: capitalize;
+            white-space: nowrap;
+            padding: 18px 14px;
+            border: none;
+            font-size: 1rem;
+            letter-spacing: 0.5px;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .table td {
+            vertical-align: middle;
+            padding: 16px 14px;
+            background: white;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 120px; /* Minimum column width */
+        }
+
+        .table tbody tr {
+            background: white;
+            transition: all 0.2s ease;
+        }
+
+        .table tbody tr:hover {
+            background: rgba(52, 152, 219, 0.08) !important;
+            transform: scale(1.01);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .table tbody tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .table tbody tr:nth-child(even):hover {
+            background: rgba(52, 152, 219, 0.12) !important;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+            border-color: #2980b9;
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+            border-color: var(--success-color);
+        }
+
+        .text-success {
+            color: var(--success-color);
+            font-weight: 500;
+        }
+
+        /* Add to your existing styles */
+
+        /* Force modal elements to be on top */
+        .modal {
+            z-index: 1050 !important;
+        }
+
+        .modal-backdrop {
+            z-index: 1040 !important;
+        }
+
+        .modal-dialog {
+            z-index: 1055 !important;
+        }
+
+        .modal-content {
+            z-index: 1060 !important;
+        }
+
+        .modal-body {
+            z-index: 1070 !important;
+        }
+
+        .modal-body * {
+            z-index: 1080 !important;
+            position: relative !important;
+        }
+
+        /* Ensure all form elements are interactive */
+        .form-control, .btn, input, textarea, button {
+            pointer-events: auto !important;
+            position: relative !important;
+        }
+
+        /* Remove conflicting backdrop styles */
+        .modal-backdrop.show {
+            opacity: 0.5 !important;
+        }
+
+        /* RFID popup higher z-index */
+        .popup-form {
+            z-index: 2000 !important;
+        }
+
+        .modal-dialog {
+    z-index: 1060 !important;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-body input, 
+.modal-body textarea, 
+.modal-body button {
+    pointer-events: auto !important;
+    z-index: 1070 !important;
+    position: relative;
+}
+
+/* RFID Popup styling */
+.popup-form {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border: 2px solid #3498db;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+    z-index: 2000 !important;
+    min-width: 300px;
+}
+
+.popup-form h3 {
+    color: #2c3e50;
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+.popup-form input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+.popup-form button {
+    padding: 8px 15px;
+    margin-right: 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.popup-form button:first-child {
+    background-color: #3498db;
+    color: white;
+}
+
+.popup-form button:last-child {
+    background-color: #95a5a6;
+    color: white;
+}
+
+.popup-form button:hover {
+    opacity: 0.8;
+}
+
+/* Form controls enhancement */
+.form-control {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 10px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+}
+
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+    outline: none;
+}
+
+.form-control[readonly] {
+    background-color: #f8f9fa;
+    cursor: not-allowed;
+}
+
+/* Button styling */
+.btn {
+    cursor: pointer;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+.btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+/* Ensure all interactive elements work */
+button, input, textarea, select {
+    pointer-events: auto !important;
+}
+
+/* Fix backdrop issues */
+.modal-backdrop.show {
+    opacity: 0;
+}
+
+/* Form group spacing */
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #333;
+}
+
+        .action-btn {
+            min-width: 120px;
+        }
+
+        /* Enhanced RFID Scan Button */
+.rfid-scan-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 0 8px 8px 0;
+    color: white;
+    padding: 12px 20px;
+    font-weight: 600;
+    font-size: 14px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 140px;
+    justify-content: center;
+}
+
+.rfid-scan-btn:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+.rfid-scan-btn:active {
+    transform: translateY(0);
+}
+
+.rfid-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease;
+}
+
+.rfid-scan-btn:hover .rfid-icon {
+    transform: scale(1.1) rotate(5deg);
+}
+
+.btn-text {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.scan-animation {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.5s ease;
+}
+
+.rfid-scan-btn:hover .scan-animation {
+    left: 100%;
+}
+
+/* Modern Input Enhancement */
+.modern-input {
+    border-radius: 8px 0 0 8px;
+    border: 2px solid #e1e8ed;
+    padding: 12px 16px;
+    font-size: 15px;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.modern-input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    outline: none;
+}
+
+/* Enhanced Modern Popup */
+.modern-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+    z-index: 2000;
+    min-width: 400px;
+    max-width: 90vw;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+}
+
+.modern-popup[style*="block"] {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.popup-header {
+    text-align: center;
+    padding: 30px 30px 20px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.rfid-icon-large {
+    display: inline-flex;
+    align-items: center;
+            .action-btn {
+                min-width: 100px;
+                padding: 5px 10px;
+                font-size: 0.85rem;
+            }
+
+            .repair-log-card {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .repair-log-card .btn {
+                width: 100%;
+                margin-top: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="full-width-container">
+        <div class="content-container">
+            <div class="repair-log-card">
+    <div>
+        <h2 style="margin: 0; color: #2c3e50;">Repair Log</h2>
+
+    </div>
+    <a href="/" class="btn btn-secondary" style="height: 40px; align-self: flex-start;">Back</a>
+</div>
+
+            {% if data %}
+                <div class="table-container">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    {% for col in data[0].keys() if col != 'Action' %}
+                                        <th>{{ col }}</th>
+                                    {% endfor %}
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in data %}
+                                    <tr>
+                                        {% for key, value in row.items() if key != 'Action' %}
+                                            <td>{{ value }}</td>
+                                        {% endfor %}
+                                        <td>
+    {% set status = row.get('Action Status', '') %}
+    {% if status == '' or status == 'None' or status == 'nan' or status == 'null' %}
+        {% set safe_id = row.get('ID', '') %}
+        <button class="btn btn-primary action-btn"
+                data-bs-toggle="modal"
+                data-bs-target="#actionModal"
+                onclick="setRecordId('{{ safe_id }}')">
+            Take Action
+        </button>
+    {% else %}
+        <span class="text-success">✓ Action Taken</span>
+    {% endif %}
+</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% else %}
+                <div class="alert alert-warning">No records found in the repair log.</div>
+            {% endif %}
+
+            <!-- Modal for Taking Action -->
+<div class="modal fade" id="actionModal" tabindex="-1" aria-labelledby="actionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="actionModalLabel">Take Action - Record ID: <span id="modal-record-id">--</span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="/submit-action" id="actionForm">
+                <div class="modal-body">
+                    <input type="hidden" id="record_id" name="record_id" value="">
+                    
+                    <div class="mb-3">
+                        <label for="action_taken" class="form-label"><strong>Action Taken *</strong></label>
+                        <textarea class="form-control" 
+                                  placeholder="Describe the action you took to resolve the issue..." 
+                                  name="action_taken" 
+                                  id="action_taken"
+                                  rows="4" 
+                                  required
+                                  style="z-index: 1080; position: relative;"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Technician Name *</strong></label>
+                        <div class="input-group">
+                            <input type="text" 
+                                   name="user_name" 
+                                   id="user_name" 
+                                   class="form-control"
+                                   placeholder="Enter your name"
+                                   required
+                                   style="z-index: 1080; position: relative;">
+                            <button type="button" 
+                                    class="btn btn-success" 
+                                    onclick="openRFIDPopup()"
+                                    style="z-index: 1080; position: relative;">
+                                Scan RFID
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Date & Time</strong></label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="datetime-display" 
+                               readonly
+                               style="background-color: #f8f9fa; z-index: 1080; position: relative;">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="z-index: 1080; position: relative;">Cancel</button>
+                    <button type="submit" class="btn btn-success" id="submitBtn" style="z-index: 1080; position: relative;">
+                        Submit Action
+                    </button>
+                </div>
+                <div id="rfidPopup" class="popup-form" style="display: none;">
+    <h3>Scan Your RFID</h3>
+    <input type="text" id="rfidInput" placeholder="Scan or type RFID here...">
+    <div style="text-align: right; margin-top: 15px;">
+        <button type="button" class="btn btn-primary" onclick="submitRFID()">Submit</button>
+        <button type="button" class="btn btn-secondary" onclick="closeRFIDPopup()">Cancel</button>
+    </div>
+</div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- RFID Popup -->
+
+
+<script>
+console.log('🔄 Loading repair log script...');
+
+let currentModal = null;
+let isModalOpen = false;
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('✅ DOM loaded, initializing modal...');
+    
+    // Initialize modal
+    const modalElement = document.getElementById('actionModal');
+    if (modalElement) {
+        console.log('✅ Modal element found');
+        
+        // Initialize with no backdrop to prevent freezing
+        currentModal = new bootstrap.Modal(modalElement, {
+            backdrop: false,  // This prevents freezing
+            keyboard: true,
+            focus: true
+        });
+        
+        // Modal event listeners
+        modalElement.addEventListener('show.bs.modal', function() {
+            console.log('🔄 Modal showing...');
+            isModalOpen = true;
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        });
+        
+        modalElement.addEventListener('shown.bs.modal', function() {
+            console.log('✅ Modal shown');
+            // Focus on textarea after modal is fully displayed
+            setTimeout(() => {
+                const textarea = document.getElementById('action_taken');
+                if (textarea) {
+                    textarea.focus();
+                    textarea.click();
+                    console.log('✅ Textarea focused');
+                }
+            }, 300);
+        });
+        
+        modalElement.addEventListener('hide.bs.modal', function() {
+            console.log('🔄 Modal hiding...');
+            isModalOpen = false;
+            document.body.style.overflow = ''; // Restore scrolling
+        });
+        
+        modalElement.addEventListener('hidden.bs.modal', function() {
+            console.log('✅ Modal hidden');
+            clearForm();
+        });
+    } else {
+        console.error('❌ Modal element not found!');
+    }
+    
+    // Form submission handler
+    const form = document.getElementById('actionForm');
+    if (form) {
+        console.log('✅ Form found, adding event listener');
+        
+        form.addEventListener('submit', function(event) {
+            console.log('📝 Form submission triggered');
+            
+            const recordId = document.getElementById('record_id').value.trim();
+            const actionTaken = document.getElementById('action_taken').value.trim();
+            const userName = document.getElementById('user_name').value.trim();
+            
+            console.log('📝 Form data:', { recordId, actionTaken, userName });
+            
+            // Validation
+            if (!recordId) {
+                event.preventDefault();
+                alert('❌ Error: No record ID found. Please try again.');
+                return false;
+            }
+            
+            if (!actionTaken) {
+                event.preventDefault();
+                alert('❌ Please describe the action taken.');
+                document.getElementById('action_taken').focus();
+                return false;
+            }
+            
+            if (!userName) {
+                event.preventDefault();
+                alert('❌ Please enter your name.');
+                document.getElementById('user_name').focus();
+                return false;
+            }
+            
+            // Show loading state
+            const submitBtn = document.getElementById('submitBtn');
+            if (submitBtn) {
+                submitBtn.innerHTML = '⏳ Submitting...';
+                submitBtn.disabled = true;
+            }
+            
+            console.log('✅ Form validation passed, submitting...');
+            return true;
+        });
+    } else {
+        console.error('❌ Form not found!');
+    }
+    
+    console.log('✅ Modal initialization complete');
+});
+
+// Function to set record ID and show modal
+function setRecordId(recordId) {
+    console.log('🔧 setRecordId called with:', recordId);
+    
+    if (!recordId || recordId === '' || recordId === 'None' || recordId === 'null') {
+        alert("❌ Invalid record ID: " + recordId);
+        return;
+    }
+    
+    // Clear any previous data
+    clearForm();
+    
+    // Set the record ID
+    const recordIdInput = document.getElementById("record_id");
+    const modalTitle = document.getElementById("modal-record-id");
+    
+    if (recordIdInput) {
+        recordIdInput.value = recordId;
+        console.log('✅ Record ID set to:', recordId);
+    } else {
+        console.error('❌ Record ID input not found');
+    }
+    
+    if (modalTitle) {
+        modalTitle.textContent = recordId;
+    }
+
+    // Set current date/time
+    updateDateTime();
+    
+    // Show the modal
+    console.log('🔄 Attempting to show modal...');
+    
+    if (currentModal) {
+        try {
+            currentModal.show();
+            console.log('✅ Modal shown via Bootstrap');
+        } catch (error) {
+            console.error('❌ Error showing modal:', error);
+            showModalManually();
+        }
+    } else {
+        console.error('❌ Modal not initialized, trying manual show');
+        showModalManually();
+    }
+}
+
+// Manual modal show function
+function showModalManually() {
+    console.log('🔄 Showing modal manually...');
+    const modalElement = document.getElementById('actionModal');
+    
+    if (modalElement) {
+        modalElement.style.display = 'block';
+        modalElement.classList.add('show');
+        modalElement.setAttribute('aria-hidden', 'false');
+        
+        // Add custom backdrop
+        const backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop fade show';
+        backdrop.id = 'manual-backdrop';
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+        backdrop.style.opacity = '0.5';
+        document.body.appendChild(backdrop);
+        
+        document.body.classList.add('modal-open');
+        isModalOpen = true;
+        
+        // Focus on textarea
+        setTimeout(() => {
+            const textarea = document.getElementById('action_taken');
+            if (textarea) {
+                textarea.focus();
+                console.log('✅ Manual focus on textarea');
+            }
+        }, 100);
+    }
+}
+
+// Function to update date/time
+function updateDateTime() {
+    const now = new Date();
+    const formatted = now.getFullYear() + "-" +
+                    String(now.getMonth()+1).padStart(2, '0') + "-" +
+                    String(now.getDate()).padStart(2, '0') + " " +
+                    String(now.getHours()).padStart(2, '0') + ":" +
+                    String(now.getMinutes()).padStart(2, '0') + ":" +
+                    String(now.getSeconds()).padStart(2, '0');
+    
+    const datetimeInput = document.getElementById("datetime-display");
+    if (datetimeInput) {
+        datetimeInput.value = formatted;
+        console.log('🕒 DateTime set to:', formatted);
+    }
+}
+
+// Function to clear form
+function clearForm() {
+    console.log('🧹 Clearing form...');
+    
+    const form = document.getElementById('actionForm');
+    if (form) {
+        form.reset();
+    }
+    
+    const recordIdInput = document.getElementById('record_id');
+    if (recordIdInput) {
+        recordIdInput.value = '';
+    }
+    
+    const submitBtn = document.getElementById('submitBtn');
+    if (submitBtn) {
+        submitBtn.innerHTML = 'Submit Action';
+        submitBtn.disabled = false;
+    }
+    
+    const modalTitle = document.getElementById('modal-record-id');
+    if (modalTitle) {
+        modalTitle.textContent = '--';
+    }
+}
+
+// RFID popup functions
+            function openRFIDPopup() {
+        document.getElementById('rfidPopup').style.display = 'block';
+        document.getElementById('rfidInput').value = '';
+        setTimeout(() => {
+            document.getElementById('rfidInput').focus();
+        }, 100);
+    }
+
+function closeRFIDPopup() {
+    console.log('🔒 Closing RFID popup...');
+    const popup = document.getElementById('rfidPopup');
+    if (popup) {
+        popup.style.display = 'none';
+    }
+}
+
+function submitRFID() {
+    const rfidInput = document.getElementById('rfidInput');
+    const userNameInput = document.getElementById('user_name');
+    
+    if (!rfidInput || !userNameInput) {
+        alert("❌ Error: Form elements not found.");
+        return;
+    }
+    
+    const rfid = rfidInput.value.trim();
+    if (!rfid) {
+        alert("❌ Please scan or enter RFID code.");
+        rfidInput.focus();
+        return;
+    }
+
+    console.log('📡 Submitting RFID:', rfid);
+    userNameInput.value = 'Loading...';
+
+    fetch(`/get_username/${rfid}`)
+        .then(response => {
+            console.log('📡 RFID response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('📡 RFID response data:', data);
+            if (data.user_name) {
+                userNameInput.value = data.user_name;
+                closeRFIDPopup();
+            } else {
+                userNameInput.value = '';
+                alert("❌ RFID not found. Please enter name manually.");
+                closeRFIDPopup();
+                setTimeout(() => userNameInput.focus(), 100);
+            }
+        })
+        .catch(err => {
+            console.error('❌ RFID fetch error:', err);
+            userNameInput.value = '';
+            alert("❌ Error reading RFID. Please enter name manually.");
+            closeRFIDPopup();
+            setTimeout(() => userNameInput.focus(), 100);
+        });
+}
+
+// RFID input enter key handler
+document.addEventListener('keydown', function(event) {
+    if (event.target.id === 'rfidInput' && event.key === 'Enter') {
+        event.preventDefault();
+        submitRFID();
+    }
+});
+
+// Manual close function
+function closeModal() {
+    console.log('🔒 Closing modal manually...');
+    
+    if (currentModal) {
+        currentModal.hide();
+    }
+    
+    // Manual cleanup
+    const modalElement = document.getElementById('actionModal');
+    if (modalElement) {
+        modalElement.style.display = 'none';
+        modalElement.classList.remove('show');
+        modalElement.setAttribute('aria-hidden', 'true');
+    }
+    
+    // Remove manual backdrop
+    const backdrop = document.getElementById('manual-backdrop');
+    if (backdrop) {
+        backdrop.remove();
+    }
+    
+    document.body.classList.remove('modal-open');
+    document.body.style.overflow = '';
+    isModalOpen = false;
+    
+    clearForm();
+}
+
+// Test function
+function testModal() {
+    console.log('🧪 Testing modal functionality...');
+    
+    // Test element access
+    console.log('Modal element:', document.getElementById('actionModal'));
+    console.log('Current modal:', currentModal);
+    console.log('Record ID input:', document.getElementById('record_id'));
+    console.log('Action taken textarea:', document.getElementById('action_taken'));
+    console.log('User name input:', document.getElementById('user_name'));
+    
+    // Test modal show
+    setRecordId('TEST123');
+}
+
+// Add click handlers to make sure elements are interactive
+document.addEventListener('DOMContentLoaded', function() {
+    // Add click handlers to all form elements
+    const formElements = ['action_taken', 'user_name', 'datetime-display'];
+    
+    formElements.forEach(elementId => {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.addEventListener('click', function() {
+                console.log(`✅ ${elementId} clicked`);
+                this.focus();
+            });
+        }
+    });
+    
+    console.log('✅ Click handlers added to form elements');
+});
+
+console.log('✅ Script loaded successfully');
+</script>
+</body>
+</html>

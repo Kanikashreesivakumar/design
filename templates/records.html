@@ -90,7 +90,7 @@ h1 {
 }
 
 .table-container {
-    max-height: 80vh; /* ✅ This creates the scrollable area */
+    max-height: 80vh; /*  This creates the scrollable area */
     overflow-y: auto;
     overflow-x: auto;
     border-radius: 16px;
@@ -104,12 +104,12 @@ table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    margin-top: 0; /* ✅ Remove top margin since container has it */
+    margin-top: 0; /* Remove top margin since container has it */
     background: #fff;
-    border-radius: 0; /* ✅ Container has border radius */
-    overflow: visible; /* ✅ Allow sticky to work */
-    border: none; /* ✅ Container has border */
-    box-shadow: none; /* ✅ Container has shadow */
+    border-radius: 0; /*  Container has border radius */
+    overflow: visible; /*  Allow sticky to work */
+    border: none; /* Container has border */
+    box-shadow: none; /*  Container has shadow */
     position: relative;
 }
 
@@ -117,15 +117,15 @@ thead {
     position: sticky;
     top: 0;
     z-index: 100;
-    background: #fff; /* ✅ Solid background */
+    background: #fff; /*Solid background */
 }
 
 thead th {
     position: sticky;
     top: 0;
     z-index: 101;
-    background: linear-gradient(90deg, #5eaadd 0%, #4b98cc 100%); /* ✅ Keep gradient */
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15); /* ✅ Shadow to show it's floating */
+    background: linear-gradient(90deg, #5eaadd 0%, #4b98cc 100%); /*  Keep gradient */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15); /*  Shadow to show it's floating */
 }
 
 tbody {
@@ -500,7 +500,7 @@ document.addEventListener('visibilitychange', function() {
 
   </div>
 </div>
-<!-- ✅ ADD SCROLLABLE CONTAINER -->
+<!--  ADD SCROLLABLE CONTAINER -->
 <div class="table-container">
 <table>
   <thead>
@@ -585,6 +585,6 @@ document.addEventListener('visibilitychange', function() {
   </tbody>
 </table>
 </div>
-<!-- ✅ END TABLE CONTAINER -->
+<!-- END TABLE CONTAINER -->
 </body>
 </html>

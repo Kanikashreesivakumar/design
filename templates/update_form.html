@@ -568,7 +568,7 @@ document.querySelector('form').addEventListener('submit', function(e) {
             Days left until expiry: {{ record.days_left }}
         </p>
         {% if is_near_expiry %}
-            <p class="warning">⚠️ This trolley's check is expiring soon. You may want to select.</p>
+            <p class="warning"> This trolley's check is expiring soon. You may want to select.</p>
         {% endif %}
     {% else %}
         <p class="info">No expiry date set</p>

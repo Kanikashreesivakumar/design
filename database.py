@@ -36,7 +36,6 @@ def create_tables():
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
 
-    #  Create table only if it doesn't exist
     c.execute('''
         CREATE TABLE IF NOT EXISTS repair_log (
             id TEXT PRIMARY KEY,
@@ -993,7 +992,7 @@ def send_trolley_alerts():
                 with open(json_tracker_path, 'r') as f:
                     alerted_trolleys = json.load(f)
             except Exception as e:
-                print(f"⚠️ Could not load alert tracker: {e}")
+                print(f"Could not load alert tracker: {e}")
                 alerted_trolleys = {}
 
         # Get repair log data
@@ -1105,7 +1104,7 @@ def send_trolley_alerts():
                 server.starttls()
                 server.login(sender_email, password)
                 server.sendmail(sender_email, receiver_email, msg.as_string())
-            print("📧 Alert email sent successfully.")
+            print("Alert email sent successfully.")
 
             # Save alert tracking
             for trolley, date_days_map in alerts_to_save.items():

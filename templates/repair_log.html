@@ -620,91 +620,88 @@ button, input, textarea, select {
 
 
 <script>
-console.log('🔄 Loading repair log script...');
+console.log(' Loading repair log script...');
 
 let currentModal = null;
 let isModalOpen = false;
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('✅ DOM loaded, initializing modal...');
+    console.log(' DOM loaded, initializing modal...');
     
-    // Initialize modal
     const modalElement = document.getElementById('actionModal');
     if (modalElement) {
-        console.log('✅ Modal element found');
+        console.log(' Modal element found');
         
-        // Initialize with no backdrop to prevent freezing
+    
         currentModal = new bootstrap.Modal(modalElement, {
-            backdrop: false,  // This prevents freezing
+            backdrop: false, 
             keyboard: true,
             focus: true
         });
-        
-        // Modal event listeners
+        s
         modalElement.addEventListener('show.bs.modal', function() {
-            console.log('🔄 Modal showing...');
+            console.log(' Modal showing...');
             isModalOpen = true;
-            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+            document.body.style.overflow = 'hidden';
         });
         
         modalElement.addEventListener('shown.bs.modal', function() {
-            console.log('✅ Modal shown');
-            // Focus on textarea after modal is fully displayed
+            console.log(' Modal shown');
+            
             setTimeout(() => {
                 const textarea = document.getElementById('action_taken');
                 if (textarea) {
                     textarea.focus();
                     textarea.click();
-                    console.log('✅ Textarea focused');
+                    console.log('Textarea focused');
                 }
             }, 300);
         });
         
         modalElement.addEventListener('hide.bs.modal', function() {
-            console.log('🔄 Modal hiding...');
+            console.log(' Modal hiding...');
             isModalOpen = false;
-            document.body.style.overflow = ''; // Restore scrolling
+            document.body.style.overflow = '';
         });
         
         modalElement.addEventListener('hidden.bs.modal', function() {
-            console.log('✅ Modal hidden');
+            console.log('Modal hidden');
             clearForm();
         });
     } else {
-        console.error('❌ Modal element not found!');
+        console.error('Modal element not found!');
     }
     
-    // Form submission handler
     const form = document.getElementById('actionForm');
     if (form) {
-        console.log('✅ Form found, adding event listener');
+        console.log(' Form found, adding event listener');
         
         form.addEventListener('submit', function(event) {
-            console.log('📝 Form submission triggered');
+            console.log(' Form submission triggered');
             
             const recordId = document.getElementById('record_id').value.trim();
             const actionTaken = document.getElementById('action_taken').value.trim();
             const userName = document.getElementById('user_name').value.trim();
             
-            console.log('📝 Form data:', { recordId, actionTaken, userName });
+            console.log('Form data:', { recordId, actionTaken, userName });
             
             // Validation
             if (!recordId) {
                 event.preventDefault();
-                alert('❌ Error: No record ID found. Please try again.');
+                alert('Error: No record ID found. Please try again.');
                 return false;
             }
             
             if (!actionTaken) {
                 event.preventDefault();
-                alert('❌ Please describe the action taken.');
+                alert('Please describe the action taken.');
                 document.getElementById('action_taken').focus();
                 return false;
             }
             
             if (!userName) {
                 event.preventDefault();
-                alert('❌ Please enter your name.');
+                alert('Please enter your name.');
                 document.getElementById('user_name').focus();
                 return false;
             }
@@ -716,22 +713,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 submitBtn.disabled = true;
             }
             
-            console.log('✅ Form validation passed, submitting...');
+            console.log('Form validation passed, submitting...');
             return true;
         });
     } else {
-        console.error('❌ Form not found!');
+        console.error(' Form not found!');
     }
     
-    console.log('✅ Modal initialization complete');
+    console.log(' Modal initialization complete');
 });
 
 // Function to set record ID and show modal
 function setRecordId(recordId) {
-    console.log('🔧 setRecordId called with:', recordId);
+    console.log(' setRecordId called with:', recordId);
     
     if (!recordId || recordId === '' || recordId === 'None' || recordId === 'null') {
-        alert("❌ Invalid record ID: " + recordId);
+        alert(" Invalid record ID: " + recordId);
         return;
     }
     
@@ -744,9 +741,9 @@ function setRecordId(recordId) {
     
     if (recordIdInput) {
         recordIdInput.value = recordId;
-        console.log('✅ Record ID set to:', recordId);
+        console.log(' Record ID set to:', recordId);
     } else {
-        console.error('❌ Record ID input not found');
+        console.error('Record ID input not found');
     }
     
     if (modalTitle) {
@@ -757,25 +754,25 @@ function setRecordId(recordId) {
     updateDateTime();
     
     // Show the modal
-    console.log('🔄 Attempting to show modal...');
+    console.log('Attempting to show modal...');
     
     if (currentModal) {
         try {
             currentModal.show();
-            console.log('✅ Modal shown via Bootstrap');
+            console.log('Modal shown via Bootstrap');
         } catch (error) {
-            console.error('❌ Error showing modal:', error);
+            console.error(' Error showing modal:', error);
             showModalManually();
         }
     } else {
-        console.error('❌ Modal not initialized, trying manual show');
+        console.error(' Modal not initialized, trying manual show');
         showModalManually();
     }
 }
 
 // Manual modal show function
 function showModalManually() {
-    console.log('🔄 Showing modal manually...');
+    console.log(' Showing modal manually...');
     const modalElement = document.getElementById('actionModal');
     
     if (modalElement) {
@@ -799,7 +796,7 @@ function showModalManually() {
             const textarea = document.getElementById('action_taken');
             if (textarea) {
                 textarea.focus();
-                console.log('✅ Manual focus on textarea');
+                console.log(' Manual focus on textarea');
             }
         }, 100);
     }
@@ -818,7 +815,7 @@ function updateDateTime() {
     const datetimeInput = document.getElementById("datetime-display");
     if (datetimeInput) {
         datetimeInput.value = formatted;
-        console.log('🕒 DateTime set to:', formatted);
+        console.log(' DateTime set to:', formatted);
     }
 }
 
@@ -870,13 +867,13 @@ function submitRFID() {
     const userNameInput = document.getElementById('user_name');
     
     if (!rfidInput || !userNameInput) {
-        alert("❌ Error: Form elements not found.");
+        alert(" Error: Form elements not found.");
         return;
     }
     
     const rfid = rfidInput.value.trim();
     if (!rfid) {
-        alert("❌ Please scan or enter RFID code.");
+        alert(" Please scan or enter RFID code.");
         rfidInput.focus();
         return;
     }
@@ -886,28 +883,28 @@ function submitRFID() {
 
     fetch(`/get_username/${rfid}`)
         .then(response => {
-            console.log('📡 RFID response status:', response.status);
+            console.log(' RFID response status:', response.status);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             return response.json();
         })
         .then(data => {
-            console.log('📡 RFID response data:', data);
+            console.log(' RFID response data:', data);
             if (data.user_name) {
                 userNameInput.value = data.user_name;
                 closeRFIDPopup();
             } else {
                 userNameInput.value = '';
-                alert("❌ RFID not found. Please enter name manually.");
+                alert("RFID not found. Please enter name manually.");
                 closeRFIDPopup();
                 setTimeout(() => userNameInput.focus(), 100);
             }
         })
         .catch(err => {
-            console.error('❌ RFID fetch error:', err);
+            console.error(' RFID fetch error:', err);
             userNameInput.value = '';
-            alert("❌ Error reading RFID. Please enter name manually.");
+            alert(" Error reading RFID. Please enter name manually.");
             closeRFIDPopup();
             setTimeout(() => userNameInput.focus(), 100);
         });
@@ -952,7 +949,7 @@ function closeModal() {
 
 // Test function
 function testModal() {
-    console.log('🧪 Testing modal functionality...');
+    console.log(' Testing modal functionality...');
     
     // Test element access
     console.log('Modal element:', document.getElementById('actionModal'));
@@ -974,16 +971,16 @@ document.addEventListener('DOMContentLoaded', function() {
         const element = document.getElementById(elementId);
         if (element) {
             element.addEventListener('click', function() {
-                console.log(`✅ ${elementId} clicked`);
+                console.log(` ${elementId} clicked`);
                 this.focus();
             });
         }
     });
     
-    console.log('✅ Click handlers added to form elements');
+    console.log('Click handlers added to form elements');
 });
 
-console.log('✅ Script loaded successfully');
+console.log(' Script loaded successfully');
 </script>
 </body>
 </html>

@@ -1108,24 +1108,22 @@ def check_trolley_actions_and_send_email():
     except Exception as e:
         print(f"Failed to send email: {e}")
 
-# Run the function
-#check_trolley_actions_and_send_email()
 
 @app.route('/download_excel')
 def download_excel():
     trolley_prefix = request.args.get('trolley_prefix')
     print(f"Filter: {trolley_prefix}")
 
-    # Load the data from SQLite
+
     conn = sqlite3.connect(DB_FILE)
     df = pd.read_sql('SELECT * FROM rfid_log', conn)
     conn.close()
 
-    # Apply filter
+ 
     if trolley_prefix:
         df = df[df['trolley_name'].str.startswith(trolley_prefix)]
 
-    # Save filtered data to an in-memory Excel file
+   
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df.to_excel(writer, index=False)

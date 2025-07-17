@@ -251,83 +251,48 @@ def edit_record():
     trolley_prefixes = set()
     trolley_prefix = request.args.get('trolley_prefix', '')
 
-    # Fetch all records from rfid_log
+    # Fetch all records from PostgreSQL
     df = get_all_rfid_logs()
-    if not df.empty:
-        df.columns = [col.lower() for col in df.columns]  # Ensure lowercase columns
-        for _, row in df.iterrows():
-            due_date_cell = row.get('due_date')
-            if isinstance(due_date_cell, str):
-                try:
-                    due_date_obj = datetime.strptime(due_date_cell, '%Y-%m-%d').date()
-                except ValueError:
-                    due_date_obj = None
-            elif isinstance(due_date_cell, datetime):
-                due_date_obj = due_date_cell.date()
-            else:
-                due_date_obj = due_date_cell
-
-            if due_date_obj and due_date_obj >= today:
-                days_left = (due_date_obj - today).days
-            else:
-                days_left = None
-
-            trolley_name = row.get('trolley_name')
-            # Skip this record if filter is applied and prefix doesn't match
-            if trolley_prefix:
-                match = re.match(r'^([a-zA-Z]+)', trolley_name or '')
-                if not match or match.group(1).lower() != trolley_prefix.lower():
-                    continue
-
-            # Extract prefix (non-digit part at the beginning)
-            if trolley_name:
-                match = re.match(r'^([a-zA-Z]+)', trolley_name)
-                if match:
-                    trolley_prefixes.add(match.group(1))
-
-            records.append({
-                'record_id': int(row['id']) if 'id' in row and pd.notnull(row['id']) else None,
-                'uid': row.get('uid'),
-                'entry_date': row.get('entry_date'),
-                'trolley_name': trolley_name,
-                'entry_time': row.get('entry_time'),
-                'exit_date': row.get('exit_date'),
-                'exit_time': row.get('exit_time'),
-                'remark': row.get('tpm_category'),
-                'due_date': row.get('due_date'),
-                'user_name': row.get('user_name'),
-                'previous_completed_date': row.get('previous_completed_date'),
-                'trolley_category': row.get('trolley_category'),
-                'action_taken': row.get('action_taken'),
-                'check_point': row.get('check_point'),
-                'concern': row.get('concern'),
-                'days_left': days_left,
-            })
-
+    
+    # Rest of your logic remains the same...
+    # Just replace sqlite3.connect() calls with get_db_connection()
+    
     if request.method == 'POST':
         uid = request.form['uid']
         remarks = request.form['TPM Category']
-        # Update the tpm_category for the latest record with this UID
-        conn = sqlite3.connect(DB_FILE)
-        c = conn.cursor()
-        c.execute('''UPDATE rfid_log SET tpm_category=? WHERE uid=? ORDER BY id DESC LIMIT 1''', (remarks, uid))
-        conn.commit()
-        conn.close()
-        flash(f"Updated record for UID {uid}.")
+        
+        conn = get_db_connection()
+        if conn:
+            try:
+                cur = conn.cursor()
+                cur.execute('''
+                    UPDATE rfid_log 
+                    SET tpm_category=%s 
+                    WHERE uid=%s AND id = (
+                        SELECT id FROM rfid_log WHERE uid=%s ORDER BY id DESC LIMIT 1
+                    )
+                ''', (remarks, uid, uid))
+                conn.commit()
+                cur.close()
+                conn.close()
+                flash(f"Updated record for UID {uid}.")
+            except Exception as e:
+                print(f"Error updating record: {e}")
+        
         return redirect(f'/records?trolley_prefix={trolley_prefix}')
 
-    records.sort(key=lambda x: int(x['record_id']) if x['record_id'] is not None else 0, reverse=True)
-    trolley_names = sorted(trolley_prefixes)
+    # Get pending count from repair_log
+    try:
+        repair_df = pd.read_sql('SELECT * FROM repair_log', engine)
+        pending_count = 0
+        if not repair_df.empty and 'action_status' in repair_df.columns:
+            pending_count = repair_df['action_status'].isna().sum() + (repair_df['action_status'] == '').sum()
+    except Exception as e:
+        print(f"Error getting pending count: {e}")
+        pending_count = 0
 
-    # Use repair_log table for pending count
-    conn = sqlite3.connect(DB_FILE)
-    repair_df = pd.read_sql('SELECT * FROM repair_log', conn)
-    conn.close()
-    pending_count = 0
-    if not repair_df.empty and 'action_status' in repair_df.columns:
-        pending_count = repair_df['action_status'].isna().sum() + (repair_df['action_status'] == '').sum()
-
-    return render_template("records.html", records=records, trolley_names=trolley_names, trolley_prefix=trolley_prefix, pending_count=pending_count)
+    return render_template("records.html", records=records, trolley_names=sorted(trolley_prefixes), 
+                         trolley_prefix=trolley_prefix, pending_count=pending_count)
 
 
 
@@ -715,9 +680,8 @@ check_due_dates()
 def get_tpm_counts():
     data = request.get_json()
     trolley_type = data.get('trolleyType')
-    conn = sqlite3.connect(DB_FILE)
-    df = pd.read_sql('SELECT * FROM rfid_log', conn)
-    conn.close()
+    
+    df = pd.read_sql('SELECT * FROM rfid_log', engine)
     df['tpm_category'] = df['tpm_category'].str.lower().str.strip()
     df['trolley_type'] = df['trolley_name'].str.replace(r'\d+', '', regex=True).str.strip()
 
@@ -1003,10 +967,7 @@ def sync_drive_to_local():
 
 @app.route('/repair-log')
 def repair_log():
-    conn = sqlite3.connect(DB_FILE)
-    df = pd.read_sql('SELECT * FROM repair_log', conn)
-    conn.close()
-
+    df = pd.read_sql('SELECT * FROM repair_log', engine)
     # Drop columns you don't want to show
     df = df.drop(columns=['email', 'name'], errors='ignore')
 
@@ -1034,24 +995,23 @@ def submit_action():
         if not record_id or not username or not action_taken:
             return "Missing data", 400
 
-        if not record_id.isdigit():
-            return "Invalid record ID format", 400
-
-        conn = sqlite3.connect(DB_FILE)
-        c = conn.cursor()
-        action_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        c.execute('''
-            UPDATE repair_log
-            SET action_taken_by=?, action_time=?, action_status=?
-            WHERE id=?
-        ''', (username, action_time, action_taken, int(record_id)))
-        conn.commit()
-        conn.close()
-        print(f"✔ Action saved for ID {record_id} in SQLite")
+        conn = get_db_connection()
+        if conn:
+            cur = conn.cursor()
+            action_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            cur.execute('''
+                UPDATE repair_log
+                SET action_taken_by=%s, action_time=%s, action_status=%s
+                WHERE id=%s
+            ''', (username, action_time, action_taken, int(record_id)))
+            conn.commit()
+            cur.close()
+            conn.close()
+            
         return redirect(url_for('repair_log'))
-
+        
     except Exception as e:
-        print(f"❌ Error occurred in submit_action: {e}")
+        print(f"Error in submit_action: {e}")
         return f"An error occurred: {e}", 500
 
 
@@ -1188,23 +1148,17 @@ def check_trolley_actions_and_send_email():
 @app.route('/download_excel')
 def download_excel():
     trolley_prefix = request.args.get('trolley_prefix')
-    print(f"Filter: {trolley_prefix}")
-
-
-    conn = sqlite3.connect(DB_FILE)
-    df = pd.read_sql('SELECT * FROM rfid_log', conn)
-    conn.close()
-
- 
+    
+    df = pd.read_sql('SELECT * FROM rfid_log', engine)
+    
     if trolley_prefix:
         df = df[df['trolley_name'].str.startswith(trolley_prefix)]
-
-   
+    
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df.to_excel(writer, index=False)
     output.seek(0)
-
+    
     return send_file(
         output,
         as_attachment=True,

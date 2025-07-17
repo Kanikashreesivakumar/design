@@ -19,6 +19,9 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import pandas as pd
 import sqlite3
+import psycopg2
+from psycopg2.extras import RealDictCursor
+from sqlalchemy import create_engine
 
 
 
@@ -31,88 +34,161 @@ DB_FILE = 'database.db'
 HOST = "0.0.0.0"
 PORT = 9000
 
+# PostgreSQL Configuration
+DB_CONFIG = {
+    'host': 'localhost',
+    'database': 'kitkart_db',
+    'user': 'kitkart_user', 
+    'password': 'your_password',
+    'port': '5432'
+}
+
+# Create connection string for SQLAlchemy
+DATABASE_URL = f"postgresql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}"
+
+# Create SQLAlchemy engine
+engine = create_engine(DATABASE_URL)
+
 def create_tables():
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-   
-    c.execute('''CREATE TABLE IF NOT EXISTS rfid_log (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        uid TEXT,
-        entry_date TEXT,
-        trolley_name TEXT,
-        entry_time TEXT,
-        exit_date TEXT,
-        exit_time TEXT,
-        tpm_category TEXT,
-        due_date TEXT,
-        user_name TEXT,
-        previous_completed_date TEXT,
-        trolley_category TEXT,
-        action_taken TEXT,
-        check_point TEXT,
-        concern TEXT
-    )''')
+    try:
+        conn = psycopg2.connect(**DB_CONFIG)
+        cur = conn.cursor()
+        
+        # Create rfid_log table
+        cur.execute('''
+            CREATE TABLE IF NOT EXISTS rfid_log (
+                id SERIAL PRIMARY KEY,
+                uid TEXT,
+                entry_date DATE,
+                trolley_name TEXT,
+                entry_time TIME,
+                exit_date DATE,
+                exit_time TIME,
+                tpm_category TEXT,
+                due_date DATE,
+                user_name TEXT,
+                previous_completed_date DATE,
+                trolley_category TEXT,
+                action_taken TEXT,
+                check_point TEXT,
+                concern TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # Create uid_number table
+        cur.execute('''
+            CREATE TABLE IF NOT EXISTS uid_number (
+                uid TEXT PRIMARY KEY,
+                trolley_id TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # Create usernames table
+        cur.execute('''
+            CREATE TABLE IF NOT EXISTS usernames (
+                rfid TEXT PRIMARY KEY,
+                name TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # Create repair_log table
+        cur.execute('''
+            CREATE TABLE IF NOT EXISTS repair_log (
+                id SERIAL PRIMARY KEY,
+                trolley_number TEXT,
+                concern_description TEXT,
+                completion_time TEXT,
+                action_taken_by TEXT,
+                action_time TEXT,
+                action_status TEXT,
+                email TEXT,
+                name TEXT,
+                zone TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        print("✅ All PostgreSQL tables created successfully")
+        
+    except Exception as e:
+        print(f"❌ Error creating tables: {e}")
 
-    c.execute('''CREATE TABLE IF NOT EXISTS uid_number (
-        uid TEXT PRIMARY KEY,
-        trolley_id TEXT
-    )''')
-
-    c.execute('''CREATE TABLE IF NOT EXISTS usernames (
-        rfid TEXT PRIMARY KEY,
-        name TEXT
-    )''')
-
-    c.execute('''CREATE TABLE IF NOT EXISTS repair_log (
-        id INTEGER PRIMARY KEY,
-        trolley_number TEXT,
-        concern_description TEXT,
-        completion_time TEXT,
-        action_taken_by TEXT,
-        action_time TEXT,
-        action_status TEXT,
-        email TEXT,
-        name TEXT
-    )''')
-    conn.commit()
-    conn.close()
 
 
+def get_db_connection():
+    """Get PostgreSQL database connection"""
+    try:
+        conn = psycopg2.connect(**DB_CONFIG)
+        return conn
+    except Exception as e:
+        print(f"Database connection error: {e}")
+        return None
 
 def insert_rfid_log(data):
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute('''INSERT INTO rfid_log (uid, entry_date, trolley_name, entry_time, exit_date, exit_time, tpm_category, due_date, user_name, previous_completed_date, trolley_category, action_taken, check_point, concern)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', data)
-    conn.commit()
-    conn.close()
+    conn = get_db_connection()
+    if not conn:
+        return
+    
+    try:
+        cur = conn.cursor()
+        cur.execute('''
+            INSERT INTO rfid_log (uid, entry_date, trolley_name, entry_time, exit_date, 
+                                exit_time, tpm_category, due_date, user_name, 
+                                previous_completed_date, trolley_category, action_taken, 
+                                check_point, concern)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ''', data)
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"Error inserting RFID log: {e}")
 
 def update_rfid_log(id, updates):
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    set_clause = ', '.join([f'{k}=?' for k in updates.keys()])
-    values = list(updates.values()) + [id]
-    c.execute(f'UPDATE rfid_log SET {set_clause} WHERE id=?', values)
-    conn.commit()
-    conn.close()
+    conn = get_db_connection()
+    if not conn:
+        return
+        
+    try:
+        cur = conn.cursor()
+        set_clause = ', '.join([f'{k}=%s' for k in updates.keys()])
+        values = list(updates.values()) + [id]
+        cur.execute(f'UPDATE rfid_log SET {set_clause} WHERE id=%s', values)
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"Error updating RFID log: {e}")
 
 def get_rfid_log_by_uid(uid):
-    conn = sqlite3.connect(DB_FILE)
-    df = pd.read_sql('SELECT * FROM rfid_log WHERE uid=?', conn, params=(uid,))
-    conn.close()
-    return df
+    try:
+        df = pd.read_sql('SELECT * FROM rfid_log WHERE uid=%s', engine, params=(uid,))
+        return df
+    except Exception as e:
+        print(f"Error fetching RFID log by UID: {e}")
+        return pd.DataFrame()
 
 def get_rfid_log_by_id(id):
-    conn = sqlite3.connect(DB_FILE)
-    df = pd.read_sql('SELECT * FROM rfid_log WHERE id=?', conn, params=(id,))
-    conn.close()
-    return df
+    try:
+        df = pd.read_sql('SELECT * FROM rfid_log WHERE id=%s', engine, params=(id,))
+        return df
+    except Exception as e:
+        print(f"Error fetching RFID log by ID: {e}")
+        return pd.DataFrame()
 
 def get_all_rfid_logs():
-    conn = sqlite3.connect(DB_FILE)
-    df = pd.read_sql('SELECT * FROM rfid_log', conn)
-    conn.close()
-    return df
+    try:
+        df = pd.read_sql('SELECT * FROM rfid_log ORDER BY id DESC', engine)
+        return df
+    except Exception as e:
+        print(f"Error fetching all RFID logs: {e}")
+        return pd.DataFrame()
 
 EXCEL_FILE = "rfid_log.xlsx"
 def create_excel_file():

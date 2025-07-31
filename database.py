@@ -22,6 +22,8 @@ import sqlite3
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from sqlalchemy import create_engine
+from dotenv import load_dotenv
+import os
 
 
 
@@ -29,19 +31,27 @@ from sqlalchemy import create_engine
 app = Flask(__name__)
 app.secret_key = "your_secret_key"
 
-DB_FILE = 'database.db'
+load_dotenv()
+
+DB_CONFIG = {
+    'host': os.getenv('DB_HOST'),
+    'database': os.getenv('DB_NAME'),
+    'user': os.getenv('DB_USER'),
+    'password': os.getenv('DB_PASSWORD'),
+    'port': os.getenv('DB_PORT')
+}
 
 HOST = "0.0.0.0"
 PORT = 9000
 
 # PostgreSQL Configuration
-DB_CONFIG = {
-    'host': 'localhost',
-    'database': 'kitkart_db',
-    'user': 'kitkart_user', 
-    'password': 'your_password',
-    'port': '5432'
-}
+# DB_CONFIG = {
+#     'host': 'localhost',
+#     'database': 'kitkart_db',
+#     'user': 'kitkart_user', 
+#     'password': 'your_password',
+#     'port': '5432'
+# }
 
 # Create connection string for SQLAlchemy
 DATABASE_URL = f"postgresql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}"

@@ -18,7 +18,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import pandas as pd
-import sqlite3
+
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from sqlalchemy import create_engine
@@ -124,10 +124,10 @@ def create_tables():
         conn.commit()
         cur.close()
         conn.close()
-        print("✅ All PostgreSQL tables created successfully")
+        print(" All PostgreSQL tables created successfully")
         
     except Exception as e:
-        print(f"❌ Error creating tables: {e}")
+        print(f" Error creating tables: {e}")
 
 
 
@@ -242,12 +242,15 @@ def log_rfid_entry(uid, user_name=None):
   
 
   
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute('SELECT trolley_id FROM uid_number WHERE uid=?', (uid,))
-    row = c.fetchone()
-    trolley_number = row[0] if row else "Unknown Trolley"
-    conn.close()
+    conn = get_db_connection()
+    trolley_number = "Unknown Trolley"
+    if conn:
+        cur = conn.cursor()
+        cur.execute('SELECT trolley_id FROM uid_number WHERE uid=%s', (uid,))
+        row = cur.fetchone()
+        trolley_number = row[0] if row else "Unknown Trolley"
+        cur.close()
+        conn.close()
     data = [uid, now.strftime("%Y-%m-%d"), trolley_number, now.strftime("%H:%M:%S"), None, None, None, None, user_name, None, None, None, None, None]
     insert_rfid_log(data)
     print(f"Logged UID {uid} with Trolley {trolley_number} and User Name {user_name}.")
@@ -347,29 +350,29 @@ def get_latest_check_record(ws, uid, exclude_id=None):
 
 @app.route('/update_record/<int:record_id>', methods=['GET', 'POST'])
 def update_record(record_id):
-    import sqlite3
+    conn = get_db_connection()
+    if not conn:
+        flash("Database connection error.")
+        return redirect('/records')
 
-    DB_FILE = "database.db"
-    conn = sqlite3.connect(DB_FILE)
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-
+    cur = conn.cursor()
     # Fetch the record
-    c.execute('SELECT * FROM rfid_log WHERE id=?', (record_id,))
-    row = c.fetchone()
+    cur.execute('SELECT * FROM rfid_log WHERE id=%s', (record_id,))
+    row = cur.fetchone()
     if not row:
+        cur.close()
         conn.close()
         flash(f"ID {record_id} not found.")
         return redirect('/records')
-    record_data = dict(row)
+    record_data = dict(zip([desc[0] for desc in cur.description], row))
 
     # Find latest check record for this UID (excluding this record)
-    c.execute('''
+    cur.execute('''
         SELECT * FROM rfid_log
-        WHERE uid=? AND id!=? AND tpm_category IN ('Primary Check', 'Complete Check', 'Complete Check For Synchro')
+        WHERE uid=%s AND id!=%s AND tpm_category IN ('Primary Check', 'Complete Check', 'Complete Check For Synchro')
         ORDER BY previous_completed_date DESC LIMIT 1
     ''', (record_data['uid'], record_id))
-    latest_check_row = c.fetchone()
+    latest_check_row = cur.fetchone()
     latest_remark = latest_check_row['tpm_category'] if latest_check_row else None
 
     # Determine next check type
@@ -481,10 +484,11 @@ def update_record(record_id):
                 updates['previous_completed_date'] = date.today().strftime('%Y-%m-%d')
 
         # Update the record in SQLite
-        set_clause = ', '.join([f"{k}=?" for k in updates])
+        set_clause = ', '.join([f"{k}=%s" for k in updates])
         values = list(updates.values()) + [record_id]
-        c.execute(f"UPDATE rfid_log SET {set_clause} WHERE id=?", values)
+        cur.execute(f"UPDATE rfid_log SET {set_clause} WHERE id=%s", values)
         conn.commit()
+        cur.close()
         conn.close()
         flash("Record updated successfully!")
         return redirect('/records')
@@ -640,7 +644,7 @@ def check_due_dates():
     new_notifications = set()
 
     try:
-        conn = sqlite3.connect(DB_FILE)
+        conn = get_db_connection()
         df = pd.read_sql('SELECT * FROM rfid_log', conn)
         conn.close()
         today = datetime.now().date()
@@ -714,7 +718,7 @@ def get_tpm_counts():
 def show_dashboard():
     try:
         # Use SQLite instead of Excel
-        conn = sqlite3.connect(DB_FILE)
+        conn = get_db_connection()
         df = pd.read_sql('SELECT * FROM rfid_log', conn)
         conn.close()
 
@@ -803,11 +807,11 @@ def show_dashboard():
                 }
 
         # --- Add this block for the Repair check point concern chart ---
-        conn = sqlite3.connect(DB_FILE)
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
-        c.execute("SELECT trolley_name, check_point, tpm_category FROM rfid_log WHERE tpm_category = 'Repair'")
-        rows = c.fetchall()
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT trolley_name, check_point, tpm_category FROM rfid_log WHERE tpm_category = 'Repair'")
+        rows = cur.fetchall()
+        cur.close()
         conn.close()
 
         concern_chart = {}
@@ -892,11 +896,15 @@ def show_dashboard():
         return f"An error occurred: {str(e)}"
 
 def get_user_rfid_mapping():
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute("SELECT rfid, name FROM usernames")
-    mapping = {str(rfid).strip(): str(name).strip() for rfid, name in c.fetchall()}
-    conn.close()
+    conn = get_db_connection()
+    mapping = {}
+    if conn:
+        cur = conn.cursor()
+        cur.execute("SELECT rfid, name FROM usernames")
+        rows = cur.fetchall()
+        mapping = {str(rfid).strip(): str(name).strip() for rfid, name in rows}
+        cur.close()
+        conn.close()
     return mapping
 
 USER_RFID_MAPPING = get_user_rfid_mapping()
@@ -908,8 +916,8 @@ def get_username(rfid):
     return jsonify({'user_name': user_name})
 
 
-drive_file_path = r"C:\Users\TANSAM-2\OneDrive\FINAL REPAIR LOG.xlsx"
-local_file_path = r"G:/kitkart/New folder/REPAIR_LOG_LOCAL.xlsx"
+drive_file_path = r"E:\kitkart(RNAIPL)\design\REPAIR_LOG_LOCAL.xlsx"
+local_file_path = r"E:\kitkart(RNAIPL)\design\REPAIR_LOG_LOCAL.xlsx"
 
 
 def load_first_nonempty_sheet(file_path):
@@ -1177,9 +1185,31 @@ def download_excel():
     )
 
 
-if __name__ == '__main__':
+@app.route('/db-tables')
+def show_db_tables():
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        # Get all table names in the public schema
+        cur.execute("""
+            SELECT table_name FROM information_schema.tables
+            WHERE table_schema = 'public'
+        """)
+        tables = [row[0] for row in cur.fetchall()]
+        tables_data = {}
+        for table in tables:
+            cur.execute(f'SELECT * FROM "{table}" LIMIT 100')  # Limit to 100 rows for safety
+            columns = [desc[0] for desc in cur.description]
+            rows = cur.fetchall()
+            tables_data[table] = {'columns': columns, 'rows': rows}
+        cur.close()
+        conn.close()
+        return render_template('db_tables.html', tables_data=tables_data)
+    except Exception as e:
+        return f"Error: {e}"
 
-    create_tables()
+if __name__ == '__main__':
+    create_tables()  # <-- Make sure this runs first!
     threading.Thread(target=start_socket_server, daemon=True).start()
     threading.Thread(target=check_due_dates, daemon=True).start()
     app.run(host="0.0.0.0", port=5000, debug=True)

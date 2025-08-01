@@ -5,10 +5,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# SQLite DB path
 SQLITE_DB = r"E:\kitkart(RNAIPL)\design\database.db"
 
-# PostgreSQL config
 DB_CONFIG = {
     'host': os.getenv('DB_HOST', 'localhost'),
     'database': os.getenv('DB_NAME', 'postgres'),
@@ -17,7 +15,7 @@ DB_CONFIG = {
     'port': os.getenv('DB_PORT', '5432')
 }
 
-# List of tables to transfer
+
 TABLES = ["rfid_log", "usernames", "uid_number", "repair_log"]
 
 def transfer_table(table):

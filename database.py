@@ -257,18 +257,15 @@ def log_rfid_entry(uid, user_name=None):
 
 
 
-@app.route('/records', methods=['GET', 'POST'])
+@app.route('/records')
 def edit_record():
     records = []
     today = datetime.now().date()
     trolley_prefixes = set()
     trolley_prefix = request.args.get('trolley_prefix', '')
 
-    # Fetch all records from PostgreSQL
-    df = get_all_rfid_logs()
     
-    # Rest of your logic remains the same...
-    # Just replace sqlite3.connect() calls with get_db_connection()
+    df = get_all_rfid_logs()
     
     if request.method == 'POST':
         uid = request.form['uid']

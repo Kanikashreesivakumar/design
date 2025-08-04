@@ -761,7 +761,6 @@ def show_dashboard():
         monthly_data = monthly_data[['month', 'trolley_type', 'plan', 'actual', 'month_num', 'year']].fillna(0)
         monthly_data = monthly_data.sort_values(['year', 'month_num'])
 
-        # 2. Original Duration Calculation (EXACTLY as in original)
         df_datetime = df.dropna(subset=['entry_date', 'entry_time', 'exit_date', 'exit_time']).copy()
         df_datetime['entry_datetime'] = pd.to_datetime(
             df_datetime['entry_date'].astype(str) + ' ' + df_datetime['entry_time'].astype(str), errors='coerce')
@@ -772,7 +771,7 @@ def show_dashboard():
             'entry_datetime']).dt.total_seconds() / 60
         duration_by_trolley = df_datetime.groupby('trolley_name')['duration_minutes'].max().sort_values(ascending=False);
 
-        # 3. Original Current Month Plan Calculation (EXACTLY as in original)
+        
         today = pd.Timestamp.today()
         current_month = today.month
         current_year = today.year
@@ -781,12 +780,10 @@ def show_dashboard():
             (df['due_date'].dt.year == current_year)
             ]
 
-        # 4. Original Concern Calculation (EXACTLY as in original)
         concern_chart = {
     "Kitkart": {"Bearings Issue": 4, "Guide Wheel Issue": 2},
     "Synchro": {"CCR Number plate": 1, "Foam/protector": 3}
 }
-        # 5. Original Repair Calculation (EXACTLY as in original)
         repair_chart_data_by_type = {}
         if 'tpm_category' in df.columns:
             repair_df = df[df['tpm_category'].str.strip().str.lower() == 'repair']
@@ -803,7 +800,7 @@ def show_dashboard():
                     'counts': grouped['repair_count'].tolist()
                 }
 
-        # --- Add this block for the Repair check point concern chart ---
+     
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute("SELECT trolley_name, check_point, tpm_category FROM rfid_log WHERE tpm_category = 'Repair'")

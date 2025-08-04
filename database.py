@@ -405,7 +405,7 @@ def update_record(record_id):
     is_near_expiry = days_left is not None and days_left <= 7
 
     if request.method == 'POST':
-        # --- Collect all dynamic checkpoint, concern, and action taken values ---
+        
         form_data = request.form.to_dict(flat=False)
         checked_ids = []
         check_points = []
@@ -425,12 +425,11 @@ def update_record(record_id):
         print("Concerns:", concerns)
         print("Actions Taken:", actions_taken)
 
-        # Convert lists to comma-separated strings for SQLite
         concern_data = ', '.join([c.strip() for c in concerns if c.strip()])
         action_data = ', '.join([at.strip() for at in actions_taken if at.strip()])
         checkpoint_data = ', '.join([cp.strip() for cp in check_points if cp.strip()])
         
-        # Get other fields
+      
         user_name = request.form.get('user_name', record_data.get('user_name', ''))
         remarks_input = request.form.get('tpm_category', record_data.get('tpm_category', ''))
         trolley_category = request.form.get('trolley_category', record_data.get('trolley_category', ''))
@@ -438,7 +437,6 @@ def update_record(record_id):
         exit_date = now.strftime('%Y-%m-%d')
         exit_time = now.strftime('%H:%M:%S')
 
-        # Prepare updates dict
         updates = {
             'trolley_name': request.form.get('trolley_name', record_data['trolley_name']),
             'tpm_category': remarks_input,
@@ -453,7 +451,7 @@ def update_record(record_id):
             'exit_time': exit_time
         }
 
-        # Handle remarks and due dates
+        
         if remarks_input in ['Primary Check', 'Complete Check', 'Complete Check For Synchro']:
             previous_completed_date_input = request.form.get('previous_completed_date')
             try:
@@ -480,7 +478,7 @@ def update_record(record_id):
                 updates['due_date'] = (date.today() + timedelta(days=7)).strftime('%Y-%m-%d')
                 updates['previous_completed_date'] = date.today().strftime('%Y-%m-%d')
 
-        # Update the record in SQLite
+       
         set_clause = ', '.join([f"{k}=%s" for k in updates])
         values = list(updates.values()) + [record_id]
         cur.execute(f"UPDATE rfid_log SET {set_clause} WHERE id=%s", values)
@@ -566,7 +564,7 @@ def index():
     return redirect('/records')
 
 
-# File to store sent notifications
+
 NOTIFICATION_TRACKER_FILE = Path("sent_notifications.json")
 
 
@@ -585,7 +583,7 @@ def save_sent_notifications(notifications):
 def send_email(uid, trolleys_due):
     subject = f"Trolley Due Notification for UID"
 
-    # Build HTML message
+   
     rows = ""
     for trolley_name, days_left in trolleys_due:
         rows += f"""
@@ -666,7 +664,7 @@ def check_due_dates():
                 except Exception as e:
                     print(f"Error in row: {e}")
 
-        # Send emails and track successful notifications
+        
         successful_notifications = set()
         for uid, items in uid_data.items():
             if items and send_email(uid, items):

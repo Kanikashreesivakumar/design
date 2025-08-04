@@ -696,7 +696,6 @@ def get_tpm_counts():
     df['tpm_category'] = df['tpm_category'].str.lower().str.strip()
     df['trolley_type'] = df['trolley_name'].str.replace(r'\d+', '', regex=True).str.strip()
 
-    # Filter by trolley_type if needed
     if trolley_type:
         df = df[df['trolley_type'] == trolley_type]
 
@@ -714,29 +713,25 @@ def get_tpm_counts():
 @app.route('/dashboard', methods=['GET'])
 def show_dashboard():
     try:
-        # Use SQLite instead of Excel
+       
         conn = get_db_connection()
         df = pd.read_sql('SELECT * FROM rfid_log', conn)
         conn.close()
 
-        # Check required columns (unchanged)
         required_columns = {'previous_completed_date', 'uid', 'due_date', 'trolley_name', 'entry_date', 'entry_time',
                             'tpm_category', 'exit_date', 'exit_time', 'concern'}
         df.columns = [col.lower() for col in df.columns]
         if not required_columns.issubset(df.columns):
             return f"Error: Required columns not found in the database. Missing: {required_columns - set(df.columns)}"
 
-        # Robust date conversion (handles both date and datetime strings)
         df['previous_completed_date'] = pd.to_datetime(df['previous_completed_date'], errors='coerce')
         df['due_date'] = pd.to_datetime(df['due_date'], errors='coerce')
         df['entry_date'] = pd.to_datetime(df['entry_date'], errors='coerce')
         df['exit_date'] = pd.to_datetime(df['exit_date'], errors='coerce')
 
-        # Extract trolley type (unchanged)
         df['trolley_type'] = df['trolley_name'].str.replace(r'\d+', '', regex=True).str.strip()
         trolley_types = df['trolley_type'].unique()
 
-        # 1. Original Monthly Plan/Actual Calculation (EXACTLY as in original)
         df['month_year'] = df['previous_completed_date'].dt.to_period('M').astype(str)
         monthly_actual = df.groupby(['month_year', 'trolley_type'])['uid'].nunique().reset_index(name='actual')
 

@@ -394,10 +394,9 @@ def update_record(record_id):
     # Allow remarks if near expiry
     allow_all_remarks = days_left is None or days_left <= 7
 
-    # Allow edit trolley
+  
     allow_edit_trolley = not (latest_check_row and latest_check_row['trolley_category'])
 
-    # Allow edit previous completed date
     edit_previous_completed = days_left is None or days_left <= 7
 
     has_check_record = latest_check_row is not None

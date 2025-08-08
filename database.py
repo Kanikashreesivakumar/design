@@ -353,7 +353,7 @@ def update_record(record_id):
         return redirect('/records')
 
     cur = conn.cursor()
-    # Fetch the record
+   
     cur.execute('SELECT * FROM rfid_log WHERE id=%s', (record_id,))
     row = cur.fetchone()
     if not row:
@@ -363,7 +363,6 @@ def update_record(record_id):
         return redirect('/records')
     record_data = dict(zip([desc[0] for desc in cur.description], row))
 
-    # Find latest check record for this UID (excluding this record)
     cur.execute('''
         SELECT * FROM rfid_log
         WHERE uid=%s AND id!=%s AND tpm_category IN ('Primary Check', 'Complete Check', 'Complete Check For Synchro')
@@ -372,14 +371,12 @@ def update_record(record_id):
     latest_check_row = cur.fetchone()
     latest_remark = latest_check_row['tpm_category'] if latest_check_row else None
 
-    # Determine next check type
     next_check_type = None
     if latest_remark == 'Primary Check':
         next_check_type = 'Complete Check'
     elif latest_remark == 'Complete Check':
         next_check_type = 'Primary Check'
 
-    # Calculate days_left
     days_left = None
     due_date = record_data.get('due_date')
     if due_date:
@@ -391,7 +388,6 @@ def update_record(record_id):
 
     now = datetime.now()
 
-    # Allow remarks if near expiry
     allow_all_remarks = days_left is None or days_left <= 7
 
   

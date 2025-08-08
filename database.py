@@ -86,7 +86,6 @@ def create_tables():
             )
         ''')
         
-        # Create uid_number table
         cur.execute('''
             CREATE TABLE IF NOT EXISTS uid_number (
                 uid TEXT PRIMARY KEY,
@@ -95,7 +94,7 @@ def create_tables():
             )
         ''')
         
-        # Create usernames table
+        
         cur.execute('''
             CREATE TABLE IF NOT EXISTS usernames (
                 rfid TEXT PRIMARY KEY,
@@ -104,7 +103,6 @@ def create_tables():
             )
         ''')
         
-        # Create repair_log table
         cur.execute('''
             CREATE TABLE IF NOT EXISTS repair_log (
                 id SERIAL PRIMARY KEY,
@@ -291,7 +289,6 @@ def edit_record():
         
         return redirect(f'/records?trolley_prefix={trolley_prefix}')
 
-    # Get pending count from repair_log
     try:
         repair_df = pd.read_sql('SELECT * FROM repair_log', engine)
         pending_count = 0
@@ -326,7 +323,7 @@ def get_latest_check_record(ws, uid, exclude_id=None):
             if remark in ['Primary Check', 'Complete Check','Complete Check For Synchro']:
                 completed_date = row[10].value
 
-                # Convert to date object if needed
+                
                 if isinstance(completed_date, str):
                     try:
                         completed_date = datetime.strptime(completed_date, '%Y-%m-%d').date()

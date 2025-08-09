@@ -23,13 +23,13 @@ user_file = r"G:\kitkart\New folder\USERNAME.xlsx"
 repair_log_file = r"G:\kitkart\New folder\REPAIR_LOG_LOCAL.xlsx"
 
 def import_to_postgres(df, table_name, conn):
-    # Generate CREATE TABLE statement
+  
     cols = ', '.join([f'"{col}" TEXT' for col in df.columns])
     create_stmt = f'CREATE TABLE IF NOT EXISTS "{table_name}" ({cols});'
     cur = conn.cursor()
     cur.execute(f'DROP TABLE IF EXISTS "{table_name}";')
     cur.execute(create_stmt)
-    # Insert data
+    
     for _, row in df.iterrows():
         placeholders = ', '.join(['%s'] * len(row))
         columns = ', '.join([f'"{col}"' for col in df.columns])

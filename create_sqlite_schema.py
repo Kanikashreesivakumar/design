@@ -32,7 +32,8 @@ def import_to_postgres(df, table_name, conn):
     # Insert data
     for _, row in df.iterrows():
         placeholders = ', '.join(['%s'] * len(row))
-        insert_stmt = f'INSERT INTO "{table_name}" ({", ".join([f\'"{col}"\' for col in df.columns])}) VALUES ({placeholders})'
+        columns = ', '.join([f'"{col}"' for col in df.columns])
+        insert_stmt = f'INSERT INTO "{table_name}" ({columns}) VALUES ({placeholders})'
         cur.execute(insert_stmt, tuple(row.astype(str)))
     conn.commit()
     cur.close()

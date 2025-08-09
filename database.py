@@ -53,10 +53,8 @@ PORT = 9000
 #     'port': '5432'
 # }
 
-# Create connection string for SQLAlchemy
 DATABASE_URL = f"postgresql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}"
 
-# Create SQLAlchemy engine
 engine = create_engine(DATABASE_URL)
 
 def create_tables():
@@ -64,7 +62,6 @@ def create_tables():
         conn = psycopg2.connect(**DB_CONFIG)
         cur = conn.cursor()
         
-        # Create rfid_log table
         cur.execute('''
             CREATE TABLE IF NOT EXISTS rfid_log (
                 id SERIAL PRIMARY KEY,

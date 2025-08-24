@@ -449,7 +449,7 @@ function toggleRows(button) {
 {% set concerns = (record.concern or '').split(',') %}
 {% set actions = (record.action_taken or '').split(',') %}
 {% for i in range(points|length) %}
-<tr class="{{ 'extra-row' if i >= 1 else '' }}" style="{{ 'display: none;' if i >= 1 else '' }}">
+<tr{% if i >= 1 %} class="extra-row" style="display: none;"{% endif %}>
   <td>{{ points[i] if i < points|length else '' }}</td>
   <td>{{ concerns[i] if i < concerns|length else '' }}</td>
   <td>{{ actions[i] if i < actions|length else '' }}</td>

@@ -1,5 +1,6 @@
 from collections import defaultdict, Counter
 import re
+import urllib.parse
 
 from flask import Flask, render_template, redirect, request, flash, jsonify,send_file,url_for
 import json
@@ -26,7 +27,8 @@ from dotenv import load_dotenv
 import os
 
 
-
+HOST = "127.0.0.1"  
+PORT = 9000         
 
 app = Flask(__name__)
 app.secret_key = "your_secret_key"
@@ -34,28 +36,19 @@ app.secret_key = "your_secret_key"
 load_dotenv()
 
 DB_CONFIG = {
-    'host': os.getenv('DB_HOST'),
-    'database': os.getenv('DB_NAME'),
-    'user': os.getenv('DB_USER'),
-    'password': os.getenv('DB_PASSWORD'),
-    'port': os.getenv('DB_PORT')
+    'host': os.getenv('DB_HOST', 'localhost'),
+    'database': os.getenv('DB_NAME', 'postgres'),
+    'user': os.getenv('DB_USER', 'postgres'),
+    'password': os.getenv('DB_PASSWORD', 'project@2025'),
+    'port': os.getenv('DB_PORT', '5432')
 }
 
-HOST = "0.0.0.0"
-PORT = 9000
-
-# PostgreSQL Configuration
-# DB_CONFIG = {
-#     'host': 'localhost',
-#     'database': 'kitkart_db',
-#     'user': 'kitkart_user', 
-#     'password': 'your_password',
-#     'port': '5432'
-# }
-
-DATABASE_URL = f"postgresql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}"
-
+password = urllib.parse.quote(DB_CONFIG['password'])
+DATABASE_URL = (
+    f"postgresql://{DB_CONFIG['user']}:{password}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}"
+)
 engine = create_engine(DATABASE_URL)
+print("DATABASE_URL:", DATABASE_URL)
 
 def create_tables():
     try:
@@ -173,8 +166,13 @@ def update_rfid_log(id, updates):
 
 def get_rfid_log_by_uid(uid):
     try:
-        df = pd.read_sql('SELECT * FROM rfid_log WHERE uid=%s', engine, params=(uid,))
-        return df
+        conn = psycopg2.connect(**DB_CONFIG)
+        cur = conn.cursor()
+        cur.execute('SELECT * FROM rfid_log WHERE uid=%s', (uid,))
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+        return rows
     except Exception as e:
         print(f"Error fetching RFID log by UID: {e}")
         return pd.DataFrame()
@@ -253,39 +251,14 @@ def log_rfid_entry(uid, user_name=None):
 
 
 @app.route('/records')
-def edit_record():
-    records = []
-    today = datetime.now().date()
-    trolley_prefixes = set()
+def records():
     trolley_prefix = request.args.get('trolley_prefix', '')
-
-    
-    df = get_all_rfid_logs()
-    
-    if request.method == 'POST':
-        uid = request.form['uid']
-        remarks = request.form['TPM Category']
-        
-        conn = get_db_connection()
-        if conn:
-            try:
-                cur = conn.cursor()
-                cur.execute('''
-                    UPDATE rfid_log 
-                    SET tpm_category=%s 
-                    WHERE uid=%s AND id = (
-                        SELECT id FROM rfid_log WHERE uid=%s ORDER BY id DESC LIMIT 1
-                    )
-                ''', (remarks, uid, uid))
-                conn.commit()
-                cur.close()
-                conn.close()
-                flash(f"Updated record for UID {uid}.")
-            except Exception as e:
-                print(f"Error updating record: {e}")
-        
-        return redirect(f'/records?trolley_prefix={trolley_prefix}')
-
+    query = "SELECT * FROM rfid_log"
+    if trolley_prefix:
+        query += f" WHERE trolley_name LIKE '{trolley_prefix}%'"
+    df = pd.read_sql(query, engine)
+    records = df.to_dict(orient='records')
+    trolley_names = sorted(set(df['trolley_name'].str.extract(r'^([A-Za-z]+)', expand=False).dropna().unique()))
     try:
         repair_df = pd.read_sql('SELECT * FROM repair_log', engine)
         pending_count = 0
@@ -294,11 +267,13 @@ def edit_record():
     except Exception as e:
         print(f"Error getting pending count: {e}")
         pending_count = 0
-
-    return render_template("records.html", records=records, trolley_names=sorted(trolley_prefixes), 
-                         trolley_prefix=trolley_prefix, pending_count=pending_count)
-
-
+    return render_template(
+        "records.html",
+        records=records,
+        trolley_names=trolley_names,
+        trolley_prefix=trolley_prefix,
+        pending_count=pending_count
+    )
 
 
 def find_record_by_id(ws, id):
@@ -629,7 +604,7 @@ def check_due_dates():
 
     try:
         conn = get_db_connection()
-        df = pd.read_sql('SELECT * FROM rfid_log', conn)
+        df = pd.read_sql('SELECT * FROM rfid_log', engine)
         conn.close()
         today = datetime.now().date()
         uid_data = defaultdict(list)
@@ -702,7 +677,7 @@ def show_dashboard():
     try:
        
         conn = get_db_connection()
-        df = pd.read_sql('SELECT * FROM rfid_log', conn)
+        df = pd.read_sql('SELECT * FROM rfid_log', engine)
         conn.close()
 
         required_columns = {'previous_completed_date', 'uid', 'due_date', 'trolley_name', 'entry_date', 'entry_time',
@@ -1189,3 +1164,4 @@ if __name__ == '__main__':
     threading.Thread(target=start_socket_server, daemon=True).start()
     threading.Thread(target=check_due_dates, daemon=True).start()
     app.run(host="0.0.0.0", port=5000, debug=True)
+

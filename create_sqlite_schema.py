@@ -1,4 +1,4 @@
-# 📄 Filename: import_excel_to_postgres.py
+#  Filename: import_excel_to_postgres.py
 
 import os
 import pandas as pd

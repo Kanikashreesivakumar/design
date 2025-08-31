@@ -257,6 +257,7 @@ def records():
     if trolley_prefix:
         query += f" WHERE trolley_name LIKE '{trolley_prefix}%'"
     df = pd.read_sql(query, engine)
+    print("RECORDS FETCHED:", len(df))
     records = df.to_dict(orient='records')
     trolley_names = sorted(set(df['trolley_name'].str.extract(r'^([A-Za-z]+)', expand=False).dropna().unique()))
     try:

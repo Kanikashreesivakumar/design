@@ -25,7 +25,8 @@ def import_dataframe_to_postgres(df, table_name, conn):
     # Insert data
     for _, row in df.iterrows():
         placeholders = ', '.join(['%s'] * len(row))
-        insert_stmt = f'INSERT INTO "{table_name}" ({", ".join([f\'"{col}"\' for col in df.columns])}) VALUES ({placeholders})'
+        columns = ', '.join([f'"{col}"' for col in df.columns])
+        insert_stmt = f'INSERT INTO "{table_name}" ({columns}) VALUES ({placeholders})'
         cur.execute(insert_stmt, tuple(row.astype(str)))
     conn.commit()
     cur.close()
@@ -54,6 +55,8 @@ rfid_log_file = "rfid_log.xlsx"
 if Path(rfid_log_file).exists():
     rfid_df = pd.read_excel(rfid_log_file, engine='openpyxl')
     rfid_df.columns = [col.strip().lower().replace(" ", "_") for col in rfid_df.columns]
+    print("rfid_log.xlsx shape:", rfid_df.shape)
+    print(rfid_df.head())
     import_dataframe_to_postgres(rfid_df, "rfid_log", conn)
 else:
     print(f" File not found: {rfid_log_file}")
@@ -68,7 +71,7 @@ else:
     print(f" File not found: {username_file}")
 
 # ========== TABLE 4: REPAIR_LOG_LOCAL.xlsx ==========
-repair_file = r"G:\kitkart\New folder\REPAIR_LOG_LOCAL.xlsx"
+repair_file = r"E:\kitkart(RNAIPL)\design\REPAIR_LOG_LOCAL.xlsx"
 if Path(repair_file).exists():
     try:
         xls = pd.ExcelFile(repair_file, engine='openpyxl')

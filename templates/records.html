@@ -421,13 +421,13 @@ function toggleRows(button) {
   <tbody>
     {% for record in records %}
     <tr>
-      <td>{{ record.record_id }}</td>
+      <td>{{ record.id }}</td>
       <td>{{ record.uid }}</td>
       <td>{{ record.trolley_name}}</td>
       <td>{{ record.entry_date }}</td>
       <td>{{ record.entry_time }}</td>
       <td>{{ record.trolley_category }}</td>
-      <td>{{ record.remark }}</td>
+      <td>{{ record.tpm_category }}</td>
       <td>{{ record.previous_completed_date }}</td>
       <td>{{ record.days_left }}</td>
       <td>{{ record.due_date }}</td>
@@ -468,7 +468,7 @@ function toggleRows(button) {
       <td>{{ record.user_name }}</td>
       <td>
         {% if not record.exit_date %}
-<form action="/update_record/{{ record.record_id }}" method="get">
+<form action="/update_record/{{ record.id }}" method="get">
   <button type="submit" class="btn btn-outline-light text-dark">
     <i class="bi bi-pencil-square me-1"></i> Update
   </button>

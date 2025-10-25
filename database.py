@@ -22,7 +22,7 @@ import pandas as pd
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
 import os
 
@@ -157,7 +157,7 @@ def update_rfid_log(id, updates):
         cur = conn.cursor()
         set_clause = ', '.join([f'{k}=%s' for k in updates.keys()])
         values = list(updates.values()) + [id]
-        cur.execute(f'UPDATE rfid_log SET {set_clause} WHERE id=%s', values)
+        cur.execute(f'UPDATE rfid_log SET {set_clause} WHERE id::integer=%s', values)
         conn.commit()
         cur.close()
         conn.close()
@@ -179,7 +179,7 @@ def get_rfid_log_by_uid(uid):
 
 def get_rfid_log_by_id(id):
     try:
-        df = pd.read_sql('SELECT * FROM rfid_log WHERE id=%s', engine, params=(id,))
+        df = pd.read_sql(text('SELECT * FROM rfid_log WHERE id=:id'), engine, params={'id': id})
         return df
     except Exception as e:
         print(f"Error fetching RFID log by ID: {e}")
@@ -187,7 +187,7 @@ def get_rfid_log_by_id(id):
 
 def get_all_rfid_logs():
     try:
-        df = pd.read_sql('SELECT * FROM rfid_log ORDER BY id DESC', engine)
+        df = pd.read_sql(text('SELECT * FROM rfid_log ORDER BY id DESC'), engine)
         return df
     except Exception as e:
         print(f"Error fetching all RFID logs: {e}")
@@ -256,12 +256,23 @@ def records():
     query = "SELECT * FROM rfid_log"
     if trolley_prefix:
         query += f" WHERE trolley_name LIKE '{trolley_prefix}%'"
-    df = pd.read_sql(query, engine)
+    query += " ORDER BY id DESC"
+    
+    df = pd.read_sql(text(query), engine)
     print("RECORDS FETCHED:", len(df))
+    print("COLUMNS:", df.columns.tolist())
+    if len(df) > 0:
+        print("FIRST RECORD:", dict(df.iloc[0]))
+    
     records = df.to_dict(orient='records')
+    
+    # Debug: Print first record to see structure
+    if records:
+        print("FIRST RECORD DICT:", records[0])
+    
     trolley_names = sorted(set(df['trolley_name'].str.extract(r'^([A-Za-z]+)', expand=False).dropna().unique()))
     try:
-        repair_df = pd.read_sql('SELECT * FROM repair_log', engine)
+        repair_df = pd.read_sql(text('SELECT * FROM repair_log'), engine)
         pending_count = 0
         if not repair_df.empty and 'action_status' in repair_df.columns:
             pending_count = repair_df['action_status'].isna().sum() + (repair_df['action_status'] == '').sum()
@@ -322,20 +333,20 @@ def update_record(record_id):
         flash("Database connection error.")
         return redirect('/records')
 
-    cur = conn.cursor()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
    
-    cur.execute('SELECT * FROM rfid_log WHERE id=%s', (record_id,))
+    cur.execute('SELECT * FROM rfid_log WHERE id::integer=%s', (record_id,))
     row = cur.fetchone()
     if not row:
         cur.close()
         conn.close()
         flash(f"ID {record_id} not found.")
         return redirect('/records')
-    record_data = dict(zip([desc[0] for desc in cur.description], row))
+    record_data = dict(row)
 
     cur.execute('''
         SELECT * FROM rfid_log
-        WHERE uid=%s AND id!=%s AND tpm_category IN ('Primary Check', 'Complete Check', 'Complete Check For Synchro')
+        WHERE uid=%s AND id::integer!=%s AND tpm_category IN ('Primary Check', 'Complete Check', 'Complete Check For Synchro')
         ORDER BY previous_completed_date DESC LIMIT 1
     ''', (record_data['uid'], record_id))
     latest_check_row = cur.fetchone()
@@ -446,7 +457,7 @@ def update_record(record_id):
        
         set_clause = ', '.join([f"{k}=%s" for k in updates])
         values = list(updates.values()) + [record_id]
-        cur.execute(f"UPDATE rfid_log SET {set_clause} WHERE id=%s", values)
+        cur.execute(f"UPDATE rfid_log SET {set_clause} WHERE id::integer=%s", values)
         conn.commit()
         cur.close()
         conn.close()
@@ -605,7 +616,7 @@ def check_due_dates():
 
     try:
         conn = get_db_connection()
-        df = pd.read_sql('SELECT * FROM rfid_log', engine)
+        df = pd.read_sql(text('SELECT * FROM rfid_log'), engine)
         conn.close()
         today = datetime.now().date()
         uid_data = defaultdict(list)
@@ -655,7 +666,7 @@ def get_tpm_counts():
     data = request.get_json()
     trolley_type = data.get('trolleyType')
     
-    df = pd.read_sql('SELECT * FROM rfid_log', engine)
+    df = pd.read_sql(text('SELECT * FROM rfid_log'), engine)
     df['tpm_category'] = df['tpm_category'].str.lower().str.strip()
     df['trolley_type'] = df['trolley_name'].str.replace(r'\d+', '', regex=True).str.strip()
 
@@ -678,7 +689,7 @@ def show_dashboard():
     try:
        
         conn = get_db_connection()
-        df = pd.read_sql('SELECT * FROM rfid_log', engine)
+        df = pd.read_sql(text('SELECT * FROM rfid_log'), engine)
         conn.close()
 
         required_columns = {'previous_completed_date', 'uid', 'due_date', 'trolley_name', 'entry_date', 'entry_time',
@@ -760,7 +771,7 @@ def show_dashboard():
 
      
         conn = get_db_connection()
-        cur = conn.cursor()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute("SELECT trolley_name, check_point, tpm_category FROM rfid_log WHERE tpm_category = 'Repair'")
         rows = cur.fetchall()
         cur.close()
@@ -937,7 +948,7 @@ def sync_drive_to_local():
 
 @app.route('/repair-log')
 def repair_log():
-    df = pd.read_sql('SELECT * FROM repair_log', engine)
+    df = pd.read_sql(text('SELECT * FROM repair_log'), engine)
     # Drop columns you don't want to show
     df = df.drop(columns=['email', 'name'], errors='ignore')
 
@@ -1119,7 +1130,7 @@ def check_trolley_actions_and_send_email():
 def download_excel():
     trolley_prefix = request.args.get('trolley_prefix')
     
-    df = pd.read_sql('SELECT * FROM rfid_log', engine)
+    df = pd.read_sql(text('SELECT * FROM rfid_log'), engine)
     
     if trolley_prefix:
         df = df[df['trolley_name'].str.startswith(trolley_prefix)]

@@ -582,7 +582,7 @@ document.querySelector('form').addEventListener('submit', function(e) {
             <label>Trolley Category:</label>
             {% if allow_edit_trolley %}
                 <select name="trolley_category" required class="form-control">
-                    <option value="">Select the option</option>
+                    <option value="">Select the options</option>
                     <option value="Kitkart" {% if record.trolley_category == 'kitkart' %}selected{% endif %}>Kitkart</option>
                     <option value="Synchro" {% if record.trolley_category == 'synchro' %}selected{% endif %}>Synchro</option>
                 </select>

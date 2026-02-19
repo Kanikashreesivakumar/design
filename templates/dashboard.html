@@ -147,6 +147,18 @@ body {
     transform: translateY(-2px) scale(1.04);
 }
 
+.trolley-nav {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin: 16px 0 0 0;
+}
+
+.trolley-nav a {
+    text-decoration: none;
+}
+
 .card-container {
     display: flex;
     gap: 24px;
@@ -443,6 +455,15 @@ canvas:hover {
         <header class="dashboard-header">
             <h1>Trolley Maintenance Dashboard</h1>
             <p>Comprehensive overview of trolley maintenance status and schedules</p>
+
+            <div class="trolley-nav">
+                <a class="trolley-button" href="/records">Records</a>
+                <a class="trolley-button" href="/repair-log">Repair Log</a>
+                <a class="trolley-button" href="/import-export">Import/Export</a>
+                <a class="trolley-button" href="/reports">Reports</a>
+                <a class="trolley-button" href="/new-record">New Record</a>
+                <a class="trolley-button" href="/settings">Settings</a>
+            </div>
         </header>
 
         <div class="filter-section">

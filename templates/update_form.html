@@ -112,6 +112,36 @@
         background: linear-gradient(90deg, #5a6268 0%, #8395a7 100%);
     }
 
+    .nav-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: center;
+        margin: 0 0 16px 0;
+    }
+
+    .nav-btn {
+        display: inline-block;
+        padding: 10px 18px;
+        border-radius: 7px;
+        background: linear-gradient(90deg, #6c757d 0%, #b2bec3 100%);
+        color: #fff;
+        font-size: 14px;
+        font-weight: 600;
+        text-decoration: none;
+        box-shadow: 0 2px 8px rgba(44, 62, 80, 0.08);
+        transition: background 0.2s, transform 0.2s;
+    }
+
+    .nav-btn.primary {
+        background: linear-gradient(90deg, #0099ff 0%, #2f8cca 100%);
+    }
+
+    .nav-btn:hover {
+        transform: translateY(-2px) scale(1.03);
+        color: #fff;
+    }
+
     .info {
         color: #0099ff;
         font-size: 15px;
@@ -561,6 +591,17 @@ document.querySelector('form').addEventListener('submit', function(e) {
 </div>
 
 <div class="container">
+    <div class="nav-bar">
+        <a class="nav-btn" href="/records">Records</a>
+        <a class="nav-btn" href="/dashboard">Dashboard</a>
+        <a class="nav-btn" href="/repair-log">Repair Log</a>
+        <a class="nav-btn" href="/import-export">Import/Export</a>
+        <a class="nav-btn" href="/reports">Reports</a>
+        <a class="nav-btn" href="/new-record">New Record</a>
+        <a class="nav-btn" href="/repair-entry">Repair Entry</a>
+        <a class="nav-btn" href="/settings">Settings</a>
+    </div>
+
     <h2>Update Record for Trolley: {{ record.trolley_name }} (UID: {{ record.uid }})</h2>
 
     {% if record.days_left is not none %}

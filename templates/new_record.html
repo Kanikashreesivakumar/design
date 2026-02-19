@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>New Record</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: url("{{ url_for('static', filename='b.jpg') }}") center center fixed no-repeat;
+      background-size: cover;
+      margin: 0;
+      min-height: 100vh;
+    }
+    .page-wrap {
+      max-width: 900px;
+      margin: 24px auto;
+      padding: 24px;
+      background: rgba(255,255,255,0.96);
+      border-radius: 18px;
+      border: 2px solid #e0eafc;
+      box-shadow: 0 8px 40px 0 rgba(31, 38, 135, 0.12);
+    }
+    .nav-btn {
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <div class="d-flex flex-wrap mb-3">
+      <a class="btn btn-outline-dark nav-btn" href="/records">Records</a>
+      <a class="btn btn-outline-dark nav-btn" href="/dashboard">Dashboard</a>
+      <a class="btn btn-outline-dark nav-btn" href="/repair-log">Repair Log</a>
+      <a class="btn btn-outline-dark nav-btn" href="/import-export">Import/Export</a>
+      <a class="btn btn-outline-dark nav-btn" href="/reports">Reports</a>
+      <a class="btn btn-primary nav-btn" href="/new-record">New Record</a>
+      <a class="btn btn-outline-dark nav-btn" href="/repair-entry">Repair Entry</a>
+      <a class="btn btn-outline-dark nav-btn" href="/settings">Settings</a>
+    </div>
+
+    <h2 class="mb-3">Create New RFID Log Record</h2>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="alert alert-warning">
+          <ul class="mb-0">
+            {% for message in messages %}
+              <li>{{ message }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <form method="post">
+      <div class="row g-3">
+        <div class="col-12 col-md-6">
+          <label class="form-label">UID *</label>
+          <input class="form-control" type="text" name="uid" required />
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label">User Name</label>
+          <input class="form-control" type="text" name="user_name" />
+        </div>
+
+        <div class="col-12 col-md-6">
+          <label class="form-label">Trolley Name (optional)</label>
+          <input class="form-control" type="text" name="trolley_name" placeholder="If blank, app tries uid_number mapping" />
+        </div>
+
+        <div class="col-12 col-md-6">
+          <label class="form-label">TPM Category</label>
+          <select class="form-select" name="tpm_category">
+            <option value="">(none)</option>
+            <option>Primary Check</option>
+            <option>Complete Check</option>
+            <option>Complete Check For Synchro</option>
+            <option>Repair</option>
+          </select>
+        </div>
+
+        <div class="col-12 col-md-6">
+          <label class="form-label">Previous Completed Date (YYYY-MM-DD)</label>
+          <input class="form-control" type="date" name="previous_completed_date" />
+          <div class="form-text">Required for check types. Used to compute due date.</div>
+        </div>
+
+        <div class="col-12 col-md-6">
+          <label class="form-label">Trolley Category</label>
+          <input class="form-control" type="text" name="trolley_category" />
+        </div>
+
+        <div class="col-12">
+          <label class="form-label">Check Point</label>
+          <input class="form-control" type="text" name="check_point" />
+        </div>
+        <div class="col-12">
+          <label class="form-label">Concern</label>
+          <input class="form-control" type="text" name="concern" />
+        </div>
+        <div class="col-12">
+          <label class="form-label">Action Taken</label>
+          <input class="form-control" type="text" name="action_taken" />
+        </div>
+
+        <div class="col-12 d-flex gap-2">
+          <button class="btn btn-primary" type="submit">Create</button>
+          <a class="btn btn-outline-secondary" href="/records">Cancel</a>
+        </div>
+      </div>
+    </form>
+
+  </div>
+</body>
+</html>

@@ -28,6 +28,28 @@ app.secret_key = "your_secret_key"
 
 DB_FILE = 'database.db'
 
+SETTINGS_FILE = Path("settings.json")
+DEFAULT_SETTINGS = {
+    "repair_excel_path": r"G:\\kitkart\\REPAIR_LOG_LOCAL.xlsx",
+}
+
+
+def load_settings():
+    try:
+        if SETTINGS_FILE.exists():
+            with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, dict):
+                merged = {**DEFAULT_SETTINGS, **data}
+                return merged
+    except Exception as e:
+        print(f"Failed to load settings.json: {e}")
+    return DEFAULT_SETTINGS.copy()
+
+
+def save_settings(settings):
+    SETTINGS_FILE.write_text(json.dumps(settings, indent=2), encoding="utf-8")
+
 HOST = "0.0.0.0"
 PORT = 9000
 
@@ -91,6 +113,20 @@ def get_all_rfid_logs():
     df = pd.read_sql('SELECT * FROM rfid_log', conn)
     conn.close()
     return df
+
+
+def lookup_trolley_id_for_uid(uid: str):
+    """Best-effort lookup from uid_number table; returns None if missing."""
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        c = conn.cursor()
+        c.execute('SELECT trolley_id FROM uid_number WHERE uid=?', (str(uid).strip(),))
+        row = c.fetchone()
+        conn.close()
+        return row[0] if row else None
+    except Exception as e:
+        print(f"UID lookup failed: {e}")
+        return None
 
 EXCEL_FILE = "rfid_log.xlsx"
 def create_excel_file():
@@ -1153,102 +1189,360 @@ def download_excel():
     )
 
 
+@app.route('/import-export', methods=['GET', 'POST'])
+def import_export_page():
+    settings = load_settings()
+
+    df = pd.DataFrame()
+    try:
+        df = get_all_rfid_logs()
+        df.columns = [col.lower() for col in df.columns]
+    except Exception as e:
+        print(f"Failed to load rfid_log for import/export page: {e}")
+
+    trolley_prefixes = []
+    if not df.empty and 'trolley_name' in df.columns:
+        prefixes = set()
+        for name in df['trolley_name'].fillna('').astype(str).tolist():
+            match = re.match(r'^([a-zA-Z]+)', name)
+            if match:
+                prefixes.add(match.group(1))
+        trolley_prefixes = sorted(prefixes)
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+
+        if action == 'sync_path':
+            sync_excel_to_sqlite()
+            flash('Repair log synced from configured Excel path.')
+            return redirect(url_for('import_export_page'))
+
+        if action == 'upload_repair_excel':
+            uploaded = request.files.get('repair_excel')
+            if not uploaded or uploaded.filename == '':
+                flash('Please choose an Excel file to upload.')
+                return redirect(url_for('import_export_page'))
+
+            try:
+                sync_repair_excel_bytes_to_sqlite(uploaded.read())
+                flash('Uploaded repair log synced successfully (new rows only).')
+            except Exception as e:
+                flash(f'Failed to sync uploaded file: {e}')
+            return redirect(url_for('import_export_page'))
+
+    return render_template(
+        'import_export.html',
+        settings=settings,
+        trolley_prefixes=trolley_prefixes
+    )
+
+
+@app.route('/settings', methods=['GET', 'POST'])
+def settings_page():
+    settings = load_settings()
+
+    if request.method == 'POST':
+        repair_excel_path = (request.form.get('repair_excel_path') or '').strip()
+        if not repair_excel_path:
+            flash('Repair Excel path cannot be empty.')
+            return redirect(url_for('settings_page'))
+
+        settings['repair_excel_path'] = repair_excel_path
+        try:
+            save_settings(settings)
+            flash('Settings saved.')
+        except Exception as e:
+            flash(f'Failed to save settings: {e}')
+        return redirect(url_for('settings_page'))
+
+    return render_template('settings.html', settings=settings)
+
+
+@app.route('/reports', methods=['GET'])
+def reports_page():
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        df = pd.read_sql('SELECT * FROM rfid_log', conn)
+        conn.close()
+    except Exception as e:
+        return render_template('reports.html', error=str(e), category_counts={}, due_soon=[], type_counts={})
+
+    if df.empty:
+        return render_template('reports.html', error=None, category_counts={}, due_soon=[], type_counts={})
+
+    df.columns = [col.lower() for col in df.columns]
+
+    if 'tpm_category' in df.columns:
+        cat = df['tpm_category'].fillna('').astype(str).str.strip()
+        cat = cat.replace({'': 'Unknown'})
+        category_counts = cat.value_counts().to_dict()
+    else:
+        category_counts = {}
+
+    if 'trolley_name' in df.columns:
+        trolley_type = df['trolley_name'].fillna('').astype(str).str.replace(r'\d+', '', regex=True).str.strip()
+        trolley_type = trolley_type.replace({'': 'Unknown'})
+        type_counts = trolley_type.value_counts().to_dict()
+    else:
+        type_counts = {}
+
+    due_soon = []
+    if 'due_date' in df.columns:
+        today = pd.Timestamp.today().normalize()
+        df['due_date_parsed'] = pd.to_datetime(df['due_date'], errors='coerce')
+        mask = df['due_date_parsed'].notna() & (df['due_date_parsed'] >= today) & (df['due_date_parsed'] <= (today + pd.Timedelta(days=7)))
+        subset = df.loc[mask].copy()
+        subset = subset.sort_values('due_date_parsed')
+        for _, row in subset.head(200).iterrows():
+            due_soon.append({
+                'id': row.get('id'),
+                'uid': row.get('uid'),
+                'trolley_name': row.get('trolley_name'),
+                'due_date': (row.get('due_date_parsed').date().isoformat() if pd.notnull(row.get('due_date_parsed')) else row.get('due_date')),
+                'tpm_category': row.get('tpm_category'),
+            })
+
+    return render_template('reports.html', error=None, category_counts=category_counts, due_soon=due_soon, type_counts=type_counts)
+
+
+@app.route('/new-record', methods=['GET', 'POST'])
+def new_record_page():
+    if request.method == 'POST':
+        uid = (request.form.get('uid') or '').strip()
+        user_name = (request.form.get('user_name') or '').strip()
+        trolley_name = (request.form.get('trolley_name') or '').strip()
+        tpm_category = (request.form.get('tpm_category') or '').strip()
+        previous_completed_date = (request.form.get('previous_completed_date') or '').strip()
+        trolley_category = (request.form.get('trolley_category') or '').strip()
+        check_point = (request.form.get('check_point') or '').strip()
+        concern = (request.form.get('concern') or '').strip()
+        action_taken = (request.form.get('action_taken') or '').strip()
+
+        if not uid:
+            flash('UID is required.')
+            return redirect(url_for('new_record_page'))
+
+        if not trolley_name:
+            mapped = lookup_trolley_id_for_uid(uid)
+            trolley_name = mapped or 'Unknown Trolley'
+
+        now = datetime.now()
+        entry_date = now.strftime('%Y-%m-%d')
+        entry_time = now.strftime('%H:%M:%S')
+
+        due_date = None
+        prev_completed = None
+
+        if tpm_category in ['Primary Check', 'Complete Check', 'Complete Check For Synchro']:
+            if not previous_completed_date:
+                flash('Previous completed date is required for check types.')
+                return redirect(url_for('new_record_page'))
+            try:
+                completed_dt = datetime.strptime(previous_completed_date, '%Y-%m-%d').date()
+            except ValueError:
+                flash('Invalid date format for previous completed date (use YYYY-MM-DD).')
+                return redirect(url_for('new_record_page'))
+            prev_completed = completed_dt.strftime('%Y-%m-%d')
+
+            if tpm_category == 'Complete Check For Synchro':
+                due_date = (completed_dt + timedelta(days=180)).strftime('%Y-%m-%d')
+            else:
+                due_date = (completed_dt + timedelta(days=90)).strftime('%Y-%m-%d')
+
+        elif tpm_category == 'Repair':
+            today = date.today()
+            prev_completed = today.strftime('%Y-%m-%d')
+            due_date = (today + timedelta(days=7)).strftime('%Y-%m-%d')
+
+        try:
+            insert_rfid_log([
+                uid,
+                entry_date,
+                trolley_name,
+                entry_time,
+                None,
+                None,
+                tpm_category or None,
+                due_date,
+                user_name or None,
+                prev_completed,
+                trolley_category or None,
+                action_taken or None,
+                check_point or None,
+                concern or None,
+            ])
+            flash('New record created.')
+            return redirect(url_for('edit_record'))
+        except Exception as e:
+            flash(f'Failed to create record: {e}')
+            return redirect(url_for('new_record_page'))
+
+    return render_template('new_record.html')
+
+
+@app.route('/repair-entry', methods=['GET', 'POST'])
+def repair_entry_page():
+    if request.method == 'POST':
+        trolley_number = (request.form.get('trolley_number') or '').strip()
+        concern_description = (request.form.get('concern_description') or '').strip()
+        completion_time = (request.form.get('completion_time') or '').strip()
+        name = (request.form.get('name') or '').strip()
+        email = (request.form.get('email') or '').strip()
+        zone = (request.form.get('zone') or '').strip()
+
+        if not trolley_number or not concern_description:
+            flash('Trolley number and concern are required.')
+            return redirect(url_for('repair_entry_page'))
+
+        if not completion_time:
+            completion_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        create_tables()
+
+        base_id = f"R{datetime.now().strftime('%Y%m%d%H%M%S')}{randint(100, 999)}"
+        record_id = base_id
+
+        try:
+            conn = sqlite3.connect(DB_FILE)
+            c = conn.cursor()
+            c.execute('SELECT id FROM repair_log WHERE id = ?', (record_id,))
+            if c.fetchone():
+                record_id = f"{base_id}{randint(1000, 9999)}"
+
+            c.execute('''
+                INSERT INTO repair_log (
+                    id, trolley_number, concern_description, completion_time,
+                    action_taken_by, action_time, action_status,
+                    email, name, zone
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                record_id,
+                trolley_number,
+                concern_description,
+                completion_time,
+                '',
+                '',
+                '',
+                email,
+                name,
+                zone
+            ))
+            conn.commit()
+            conn.close()
+
+            flash('Repair entry created.')
+            return redirect(url_for('repair_log'))
+        except Exception as e:
+            flash(f'Failed to create repair entry: {e}')
+            return redirect(url_for('repair_entry_page'))
+
+    return render_template('repair_entry.html')
+
+
 
 def sync_excel_to_sqlite():
     """Sync Excel to DB: ADD NEW RECORDS ONLY, NEVER TOUCH ACTION COLUMNS"""
     try:
-        excel_path = r"G:\kitkart\REPAIR_LOG_LOCAL.xlsx"
+        excel_path = load_settings().get("repair_excel_path")
         if not os.path.exists(excel_path):
             print(f" Excel file not found: {excel_path}")
             return
 
         print(f" Reading Excel file: {excel_path}")
         df_excel = pd.read_excel(excel_path, engine='openpyxl')
-        if df_excel.empty:
-            print("Excel file is empty")
-            return
-
-        print(f" Excel contains {len(df_excel)} records")
-
-    
-        if 'Id' in df_excel.columns:
-            df_excel['id'] = df_excel['Id'].fillna('').astype(str)
-        elif 'id' in df_excel.columns:
-            df_excel['id'] = df_excel['id'].fillna('').astype(str)
-        else:
-            print("No 'Id' column in Excel")
-            return
-
-        conn = sqlite3.connect(DB_FILE)
-        c = conn.cursor()
-        
-        existing_ids = set()
-        try:
-            c.execute('SELECT id FROM repair_log')
-            existing_ids = {str(row[0]) for row in c.fetchall()}
-            print(f"Found {len(existing_ids)} existing records in database")
-        except Exception as e:
-            print(f"Could not read existing IDs: {e}")
-
-        excel_ids = set(df_excel['id'].astype(str))
-        new_ids = excel_ids - existing_ids
-        
-        if not new_ids:
-            print(" No new records to add - all Excel records already exist in database")
-            conn.close()
-            return 
-        new_records_df = df_excel[df_excel['id'].isin(new_ids)]
-        print(f"Found {len(new_records_df)} NEW records to add:")
-        for new_id in new_ids:
-            print(f"New ID: {new_id}")
-
-       
-        mapped_data = {}
-        column_mappings = {
-            'id': 'id',
-            'completion time': 'completion_time',
-            'name': 'name',
-            'mobile number': 'email',
-            'trolley number': 'trolley_number',
-            'concern': 'concern_description',
-            'concern description': 'concern_description',
-            'zone': 'zone'
-        }
-        
-        for excel_col in new_records_df.columns:
-            col_lower = excel_col.lower().strip()
-            for pattern, db_col in column_mappings.items():
-                if pattern == col_lower:
-                    mapped_data[db_col] = new_records_df[excel_col].fillna('').astype(str)
-                    print(f" Mapped '{excel_col}' → '{db_col}'")
-                    break
-
-        required_columns = ['id', 'trolley_number', 'concern_description', 'completion_time',
-                            'action_taken_by', 'action_time', 'action_status', 'email', 'name', 'zone']
-        for col in required_columns:
-            if col not in mapped_data:
-                mapped_data[col] = [''] * len(new_records_df)
-
-        new_records_final = pd.DataFrame(mapped_data)
-
-      
-        new_records_final['action_taken_by'] = ''
-        new_records_final['action_time'] = ''
-        new_records_final['action_status'] = ''
-
-      
-        new_records_final = new_records_final.replace(['None', 'nan', 'NaT', 'null'], '').fillna('')
-
-        new_records_final.to_sql('repair_log', conn, if_exists='append', index=False)
-        conn.close()
-
-        print(f"Successfully added {len(new_records_final)} new records to database")
-        print(f"Existing records and their action data were completely untouched")
+        sync_repair_df_to_sqlite(df_excel)
 
     except Exception as e:
         print(f"Sync failed: {e}")
         import traceback
         traceback.print_exc()
+
+
+def sync_repair_df_to_sqlite(df_excel: pd.DataFrame):
+    """Core repair-log sync: add NEW rows only, preserve action columns."""
+    if df_excel is None or df_excel.empty:
+        print("Excel data is empty")
+        return
+
+    print(f" Excel contains {len(df_excel)} records")
+
+    if 'Id' in df_excel.columns:
+        df_excel['id'] = df_excel['Id'].fillna('').astype(str)
+    elif 'id' in df_excel.columns:
+        df_excel['id'] = df_excel['id'].fillna('').astype(str)
+    else:
+        print("No 'Id' column in Excel")
+        return
+
+    create_tables()
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+
+    existing_ids = set()
+    try:
+        c.execute('SELECT id FROM repair_log')
+        existing_ids = {str(row[0]) for row in c.fetchall()}
+        print(f"Found {len(existing_ids)} existing records in database")
+    except Exception as e:
+        print(f"Could not read existing IDs: {e}")
+
+    excel_ids = set(df_excel['id'].astype(str))
+    new_ids = excel_ids - existing_ids
+
+    if not new_ids:
+        print(" No new records to add - all Excel records already exist in database")
+        conn.close()
+        return
+
+    new_records_df = df_excel[df_excel['id'].isin(new_ids)]
+    print(f"Found {len(new_records_df)} NEW records to add")
+
+    mapped_data = {}
+    column_mappings = {
+        'id': 'id',
+        'completion time': 'completion_time',
+        'name': 'name',
+        'mobile number': 'email',
+        'trolley number': 'trolley_number',
+        'concern': 'concern_description',
+        'concern description': 'concern_description',
+        'zone': 'zone'
+    }
+
+    for excel_col in new_records_df.columns:
+        col_lower = str(excel_col).lower().strip()
+        for pattern, db_col in column_mappings.items():
+            if pattern == col_lower:
+                mapped_data[db_col] = new_records_df[excel_col].fillna('').astype(str)
+                break
+
+    required_columns = ['id', 'trolley_number', 'concern_description', 'completion_time',
+                        'action_taken_by', 'action_time', 'action_status', 'email', 'name', 'zone']
+    for col in required_columns:
+        if col not in mapped_data:
+            mapped_data[col] = [''] * len(new_records_df)
+
+    new_records_final = pd.DataFrame(mapped_data)
+    new_records_final['action_taken_by'] = ''
+    new_records_final['action_time'] = ''
+    new_records_final['action_status'] = ''
+    new_records_final = new_records_final.replace(['None', 'nan', 'NaT', 'null'], '').fillna('')
+
+    new_records_final.to_sql('repair_log', conn, if_exists='append', index=False)
+    conn.close()
+
+    print(f"Successfully added {len(new_records_final)} new records to database")
+    print("Existing records and their action data were completely untouched")
+
+
+def sync_repair_excel_bytes_to_sqlite(excel_bytes: bytes):
+    """Sync uploaded repair-log Excel bytes into SQLite (adds NEW rows only)."""
+    if not excel_bytes:
+        print("No file bytes provided")
+        return
+
+    df_excel = pd.read_excel(io.BytesIO(excel_bytes), engine='openpyxl')
+    sync_repair_df_to_sqlite(df_excel)
 
 
 
@@ -1286,9 +1580,7 @@ def update_repair_action(record_id, action_taken_by, action_taken, action_time):
 def debug_excel():
     """Debug route to check Excel file contents"""
     try:
-        excel_paths = [
-            r"G:\kitkart\REPAIR_LOG_LOCAL.xlsx"
-        ]
+        excel_paths = [load_settings().get("repair_excel_path")]
         
         result = "<h2>Excel File Debug:</h2>"
         

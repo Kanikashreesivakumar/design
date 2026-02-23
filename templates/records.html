@@ -492,7 +492,7 @@ document.addEventListener('visibilitychange', function() {
       
 <form method="get" action="/records" class="d-flex align-items-center gap-2" id="filterForm">
   <select name="trolley_prefix" class="form-select">
-    <option value="">All</option>
+    <option value="">l</option>
     {% for name in trolley_names %}
       <option value="{{ name }}" {% if trolley_prefix == name %}selected{% endif %}>{{ name }}</option>
     {% endfor %}

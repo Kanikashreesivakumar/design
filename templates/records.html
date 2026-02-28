@@ -485,7 +485,12 @@ document.addEventListener('visibilitychange', function() {
         <i class="bi bi-gear me-1"></i> Settings
       </a>
 
-      <a href=d-flex align-items-center gap-2" id="filterForm">
+      <a href="/repair-entry" class="btn btn-outline-dark top-nav-link">
+        <i class="bi bi-wrench-adjustable me-1"></i> Repair Entry
+      </a>
+
+      
+<form method="get" action="/records" class="d-flex align-items-center gap-2" id="filterForm">
   <select name="trolley_prefix" class="form-select">
     <option value="">All</option>
     {% for name in trolley_names %}

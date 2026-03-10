@@ -9,6 +9,16 @@
 
     <title>KitKart RFID Records</title>
     <style>
+  :root {
+    --kk-bg: rgba(255, 255, 255, 0.92);
+    --kk-surface: rgba(255, 255, 255, 0.97);
+    --kk-border: #e0eafc;
+    --kk-text: #2c3e50;
+    --kk-primary: #4b98cc;
+    --kk-primary-2: #5eaadd;
+    --kk-shadow: 0 8px 40px 0 rgba(31, 38, 135, 0.13);
+  }
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background:
@@ -16,12 +26,12 @@ body {
     background-size: cover, 1400px auto; /* Adjust 1400px as needed for your image size */
     margin: 0;
     padding: 0;
-    color: #2c3e50;
+    color: var(--kk-text);
     min-height: 100vh;
 }
 
 h1 {
-    color: #2c3e50;
+  color: var(--kk-text);
     text-align: center;
     margin: 10px 0 0 0;
     font-size: 2.1rem;
@@ -29,14 +39,42 @@ h1 {
     letter-spacing: 1px;
 }
 
+.brand-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 16px;
+  margin-bottom: 18px;
+  background: var(--kk-bg);
+  border-radius: 22px;
+  box-shadow: var(--kk-shadow);
+  padding: 16px 24px;
+  max-width: 980px;
+  margin-left: auto;
+  margin-right: auto;
+  border: 1px solid rgba(224, 234, 252, 0.7);
+  backdrop-filter: blur(8px);
+}
+
+.brand-logo {
+  height: 190px;
+  object-fit: contain;
+  margin-right: 16px;
+}
+
+.brand-title {
+  text-align: left;
+}
+
 .container {
     max-width: 98vw;
     margin: 24px auto 0 auto;
-    background: rgba(255,255,255,0.97);
+  background: var(--kk-surface);
     padding: 32px 32px 24px 32px;
     border-radius: 24px;
-    box-shadow: 0 8px 40px 0 rgba(31, 38, 135, 0.13);
-    border: 2px solid #e0eafc;
+  box-shadow: var(--kk-shadow);
+  border: 2px solid var(--kk-border);
 }
 
 .top_heading {
@@ -61,6 +99,18 @@ h1 {
     max-width: 98vw;
     margin: 0 auto 18px auto;
     padding: 0 1vw;
+}
+
+.action-bar {
+  position: sticky;
+  top: 0;
+  z-index: 1200;
+  background: var(--kk-bg);
+  border: 1px solid rgba(224, 234, 252, 0.8);
+  border-radius: 18px;
+  padding: 12px 14px;
+  box-shadow: 0 10px 30px rgba(44, 62, 80, 0.08);
+  backdrop-filter: blur(8px);
 }
 
 .d-flex {
@@ -94,7 +144,7 @@ h1 {
     overflow-y: auto;
     overflow-x: auto;
     border-radius: 16px;
-    border: 1.5px solid #e0eafc;
+  border: 1.5px solid var(--kk-border);
     box-shadow: 0 4px 24px 0 rgba(44, 62, 80, 0.07);
     margin-top: 24px;
     background: #fff;
@@ -124,7 +174,7 @@ thead th {
     position: sticky;
     top: 0;
     z-index: 101;
-    background: linear-gradient(90deg, #5eaadd 0%, #4b98cc 100%); /*  Keep gradient */
+  background: linear-gradient(90deg, var(--kk-primary-2) 0%, var(--kk-primary) 100%); /*  Keep gradient */
     box-shadow: 0 2px 8px rgba(0,0,0,0.15); /*  Shadow to show it's floating */
 }
 
@@ -143,11 +193,11 @@ th, td {
 }
 
 th {
-    background: linear-gradient(90deg, #5eaadd 0%, #4b98cc 100%);
+  background: linear-gradient(90deg, var(--kk-primary-2) 0%, var(--kk-primary) 100%);
     color: #fff;
     font-weight: 600;
     font-size: 1.05rem;
-    border-right: 1px solid #e0eafc;
+  border-right: 1px solid var(--kk-border);
 }
 
 tr:last-child td {
@@ -164,13 +214,13 @@ tr:hover {
 }
 
 input[type="text"], input[type="date"], select {
-    width: 90%;
+  width: 100%;
     padding: 8px;
     border: 1.5px solid #b2bec3;
     border-radius: 6px;
     font-size: 1rem;
     background-color: #fafdff;
-    color: #2c3e50;
+  color: var(--kk-text);
     transition: border 0.2s;
 }
 
@@ -275,6 +325,28 @@ button:hover, .toggle-btn:hover {
         font-size: 0.95em;
         padding: 7px 10px;
     }
+
+  .brand-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 14px 14px;
+  }
+  .brand-logo {
+    height: 130px;
+    margin-right: 0;
+  }
+  .brand-title {
+    text-align: center;
+  }
+  .action-bar {
+    border-radius: 14px;
+    padding: 10px 10px;
+  }
+  #filterForm {
+    min-width: 0 !important;
+    width: 100%;
+  }
 }
 
 @media (max-width: 480px) {
@@ -316,46 +388,9 @@ button:hover, .toggle-btn:hover {
     border: 1.5px solid #a71d2a !important;
 }
 
-/* Add this CSS for notification badge styling */
-.notification-badge {
-    position: relative;
-    display: inline-block;
-}
-
-.notification-badge .badge {
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    background: #ff4444;
-    color: white;
-    border-radius: 50%;
-    padding: 2px 6px;
-    font-size: 12px;
-    font-weight: bold;
-    min-width: 20px;
-    text-align: center;
-    line-height: 1.2;
-}
-
-.notification-badge .badge.zero {
-    display: none;
-}
-
-.repair-log-button {
-    position: relative;
-    margin: 10px;
-    padding: 10px 20px;
-    background-color: #007bff;
-    color: white;
-    text-decoration: none;
-    border-radius: 5px;
-    display: inline-block;
-}
-
-.repair-log-button:hover {
-    background-color: #0056b3;
-    color: white;
-    text-decoration: none;
+/* Badge helper: hide when count is 0 */
+.badge.zero {
+  display: none !important;
 }
 
 /* Top nav links should look like the other buttons */
@@ -422,23 +457,9 @@ document.addEventListener('visibilitychange', function() {
 </head>
 <body>
 
-<div style="
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 14px;
-    margin-top: 16px; /* Reduced top margin */
-    margin-bottom: 18px;
-    background: rgba(255,255,255,0.92);
-    border-radius: 22px;
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.13);
-    padding: 16px 24px;
-    max-width: 900px;
-    margin-left: auto;
-    margin-right: auto;
-">
-  <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" style="height:200px;object-fit:contain; margin-right: 16px;">
-  <div style="text-align: left;">
+<div class="brand-header">
+  <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="brand-logo">
+  <div class="brand-title">
     <h1 class="top_heading" style="margin-bottom: 0.3em;">WACTOBUS TPM<br/> AUTOMOTIVE INDIA PRIVATE LIMITED</h1>
     <h1 style="font-size:1.5rem; margin-top: 0;">TROLLEY PRODUCTION MAINTENANCE SYSTEM</h1>
     <div class="blue-underline"></div>
@@ -458,7 +479,7 @@ document.addEventListener('visibilitychange', function() {
 {% endwith %}
 
 <div class="container-fluid mt-3">
-  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <div class="action-bar d-flex justify-content-between align-items-center flex-wrap gap-2">
 
 
     <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -490,13 +511,16 @@ document.addEventListener('visibilitychange', function() {
       </a>
 
       
-<form method="get" action="/records" class="d-flex align-items-center gap-2" id="filterForm">
-  <select name="trolley_prefix" class="form-select">
+<form method="get" action="/records" class="d-flex align-items-center gap-2" id="filterForm" style="min-width: 340px;">
+  <div class="d-flex flex-column" style="min-width: 220px;">
+    <small class="text-muted" style="margin-left: 2px;">Trolley</small>
+    <select name="trolley_prefix" class="form-select">
     <option value="">All</option>
     {% for name in trolley_names %}
       <option value="{{ name }}" {% if trolley_prefix == name %}selected{% endif %}>{{ name }}</option>
     {% endfor %}
-  </select>
+    </select>
+  </div>
 
   <button type="submit" class="btn btn-outline-primary">
     <i class="bi bi-funnel me-1"></i> Filter
@@ -514,12 +538,10 @@ document.addEventListener('visibilitychange', function() {
   </button>
       </form>
       
-<div class="notification-badge">
-    <a href="/repair-log" class="repair-log-button">
-        🔧 Repair Log
-    </a>
-    <span class="badge" id="repair-count-badge">{{ pending_count }}</span>
-</div>
+<a href="/repair-log" class="btn btn-outline-danger position-relative top-nav-link">
+  <i class="bi bi-wrench-adjustable me-1"></i> Repair Log
+  <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger{% if pending_count == 0 %} zero{% endif %}" id="repair-count-badge">{{ pending_count }}</span>
+</a>
 
     </div>
 

@@ -532,11 +532,7 @@ button, input, textarea, select {
     {% set status = row.get('Action Status', '') %}
     {% if status == '' or status == 'None' or status == 'nan' or status == 'null' %}
         {% set safe_id = row.get('ID', '') %}
-        <button class="btn btn-primary action-btn"
-                data-bs-toggle="modal"
-                data-bs-target="#actionModal"
-                onclick="setRecordId('{{ safe_id }}')">
-            Take Action
+        <button class="btn btn
         </button>
     {% else %}
         <span class="text-success">✓ Action Taken</span>

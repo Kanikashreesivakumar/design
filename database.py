@@ -64,6 +64,7 @@ def create_tables():
             trolley_number TEXT,
             concern_description TEXT,
             completion_time TEXT,
+            action_taken TEXT,
             action_taken_by TEXT,
             action_time TEXT,
             action_status TEXT,
@@ -72,6 +73,14 @@ def create_tables():
             zone TEXT
         )
     ''')
+
+    try:
+        c.execute("PRAGMA table_info(repair_log)")
+        existing_cols = {row[1] for row in c.fetchall()}  # row[1] = column name
+        if 'action_taken' not in existing_cols:
+            c.execute("ALTER TABLE repair_log ADD COLUMN action_taken TEXT")
+    except Exception as e:
+        print(f"Repair log schema migration skipped/failed: {e}")
 
     conn.commit()
     conn.close()
@@ -899,7 +908,8 @@ def repair_log():
     df = df.replace(['None', 'nan', 'NaT', 'null'], '')
 
     column_order = [
-        'id', 'trolley_number', 'concern_description', 'completion_time', 
+        'id', 'trolley_number', 'concern_description', 'completion_time',
+        'action_taken',
         'name', 'email', 'zone', 'action_taken_by', 'action_time', 'action_status'
     ]
     
@@ -913,6 +923,7 @@ def repair_log():
         'trolley_number': 'Trolley Number',
         'concern_description': 'Concern',
         'completion_time': 'Completion Time',
+        'action_taken': 'Action Taken',
         'email': 'Mobile Number',
         'zone': 'Zone',
         'action_taken_by': 'Action Taken By',
@@ -932,6 +943,8 @@ def repair_log():
 def submit_action():
     """Handle repair action submission - UPDATE DATABASE AND DISPLAY"""
     try:
+        create_tables()
+
         record_id = request.form.get('record_id')
         action_taken = request.form.get('action_taken')
         user_name = request.form.get('user_name')
@@ -975,10 +988,11 @@ def submit_action():
         # Update the record
         c.execute('''UPDATE repair_log 
                      SET action_taken_by = ?, 
+                         action_taken = ?,
                          action_time = ?, 
                          action_status = 'Completed'
                      WHERE id = ?''', 
-                  (user_name, action_time, record_id))
+                  (user_name, action_taken, action_time, record_id))
         
         rows_affected = c.rowcount
         if rows_affected == 0:
@@ -1412,14 +1426,15 @@ def repair_entry_page():
             c.execute('''
                 INSERT INTO repair_log (
                     id, trolley_number, concern_description, completion_time,
-                    action_taken_by, action_time, action_status,
+                    action_taken, action_taken_by, action_time, action_status,
                     email, name, zone
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 record_id,
                 trolley_number,
                 concern_description,
                 completion_time,
+                '',
                 '',
                 '',
                 '',

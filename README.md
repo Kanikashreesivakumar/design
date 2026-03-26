@@ -2,6 +2,8 @@
 
 ## What this project does (overall)
 
+This project is a Flask web application used to track trolley TPM activity using RFID scans and manual data entry, store everything in a local SQLite database (`database.db`), and present operational views (Records, Dashboard, Repair Log, Reports). RFID scans are received via a built-in TCP socket server and written into the `rfid_log` table; users can then update each record with TPM category (Primary/Complete checks or Repair), compute and store due dates based on the completed date, and capture checkpoint/concern/action details. Separately, the app maintains a `repair_log` table that can be synced from an Excel repair log (either from a configured file path or an uploaded file) while preserving any “action taken” fields already recorded inside SQLite. The UI is implemented with Jinja2 templates under `templates/`, and the app also contains optional email-notification logic (due-soon alerts and repair pending alerts) with JSON files used to avoid duplicate notifications.
+
 ## How to run
 
 - Create and activate a virtual environment.

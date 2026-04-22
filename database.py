@@ -34,6 +34,11 @@ DEFAULT_SETTINGS = {
 }
 
 
+def is_excel_lock_file(path: str) -> bool:
+    name = Path(path).name.strip()
+    return name.startswith('~$')
+
+
 def load_settings():
     try:
         if SETTINGS_FILE.exists():
@@ -119,7 +124,7 @@ def get_rfid_log_by_id(id):
 
 def get_all_rfid_logs():
     conn = sqlite3.connect(DB_FILE)
-    df = pd.read_sql('SELECT * FROM rfid_log', conn)
+    df = pd.read_sql('SELECT rowid AS record_rowid, * FROM rfid_log', conn)
     conn.close()
     return df
 
@@ -196,6 +201,17 @@ def edit_record():
     trolley_prefixes = set()
     trolley_prefix = request.args.get('trolley_prefix', '')
 
+    def safe_int(value):
+        try:
+            if value is None:
+                return None
+            text = str(value).strip()
+            if text == '' or text.lower() in {'none', 'null', 'nan'}:
+                return None
+            return int(float(text))
+        except Exception:
+            return None
+
     df = get_all_rfid_logs()
     if not df.empty:
         df.columns = [col.lower() for col in df.columns]
@@ -228,7 +244,7 @@ def edit_record():
                     trolley_prefixes.add(match.group(1))
 
             records.append({
-                'record_id': int(row['id']) if 'id' in row and pd.notnull(row['id']) else None,
+                'record_id': safe_int(row.get('id')) or safe_int(row.get('record_rowid')),
                 'uid': row.get('uid'),
                 'entry_date': row.get('entry_date'),
                 'trolley_name': trolley_name,
@@ -314,13 +330,17 @@ def update_record(record_id):
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
-    c.execute('SELECT * FROM rfid_log WHERE id=?', (record_id,))
+    c.execute('SELECT rowid AS record_rowid, * FROM rfid_log WHERE rowid=?', (record_id,))
     row = c.fetchone()
+    if not row:
+        c.execute('SELECT rowid AS record_rowid, * FROM rfid_log WHERE id=?', (record_id,))
+        row = c.fetchone()
     if not row:
         conn.close()
         flash(f"ID {record_id} not found.")
         return redirect('/records')
     record_data = dict(row)
+    target_rowid = record_data.get('record_rowid')
 
     c.execute('''
         SELECT * FROM rfid_log
@@ -433,11 +453,11 @@ def update_record(record_id):
                 updates['previous_completed_date'] = date.today().strftime('%Y-%m-%d')
 
         set_clause = ', '.join([f"{k}=?" for k in updates])
-        values = list(updates.values()) + [record_id]
-        c.execute(f"UPDATE rfid_log SET {set_clause} WHERE id=?", values)
+        values = list(updates.values()) + [target_rowid]
+        c.execute(f"UPDATE rfid_log SET {set_clause} WHERE rowid=?", values)
         conn.commit()
   
-        c.execute('SELECT id, trolley_name, exit_date, action_taken FROM rfid_log WHERE id = ?', (record_id,))
+        c.execute('SELECT rowid AS record_rowid, id, trolley_name, exit_date, action_taken FROM rfid_log WHERE rowid = ?', (target_rowid,))
         result = c.fetchone()
         print("Updated record:", result)
         conn.close()
@@ -1260,6 +1280,9 @@ def settings_page():
         if not repair_excel_path:
             flash('Repair Excel path cannot be empty.')
             return redirect(url_for('settings_page'))
+        if is_excel_lock_file(repair_excel_path):
+            flash('Please select the real workbook, not the Excel lock file that starts with ~$.')
+            return redirect(url_for('settings_page'))
 
         settings['repair_excel_path'] = repair_excel_path
         try:
@@ -1462,6 +1485,9 @@ def sync_excel_to_sqlite():
         if not os.path.exists(excel_path):
             print(f" Excel file not found: {excel_path}")
             return
+        if is_excel_lock_file(excel_path):
+            print(f" Ignoring Excel lock file: {excel_path}")
+            return
 
         print(f" Reading Excel file: {excel_path}")
         df_excel = pd.read_excel(excel_path, engine='openpyxl')
@@ -1601,6 +1627,9 @@ def debug_excel():
         
         for path in excel_paths:
             if os.path.exists(path):
+                if is_excel_lock_file(path):
+                    result += f"<p>Skipping Excel lock file: {path}</p>"
+                    continue
                 result += f"<h3>Found file: {path}</h3>"
                 df = pd.read_excel(path, engine='openpyxl')
                 result += f"<p>Rows: {len(df)}, Columns: {list(df.columns)}</p>"

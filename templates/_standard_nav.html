@@ -76,9 +76,7 @@
     <a class="standard-nav-link {% if active_page == 'dashboard' %}active{% endif %}" href="/dashboard">Dashboard</a>
     <a class="standard-nav-link {% if active_page == 'repair_log' %}active{% endif %}" href="/repair-log">
       Repair Log
-      {% if repair_count is defined and repair_count is not none %}
-        <span style="display:inline-flex;align-items:center;justify-content:center;min-width:1.6rem;height:1.6rem;margin-left:8px;padding:0 0.45rem;border-radius:999px;background:#d9534f;color:#fff;font-size:0.82rem;line-height:1;">{{ repair_count }}</span>
-      {% endif %}
+      <span id="repair-count-badge" style="display:inline-flex;align-items:center;justify-content:center;min-width:1.6rem;height:1.6rem;margin-left:8px;padding:0 0.45rem;border-radius:999px;background:#d9534f;color:#fff;font-size:0.82rem;line-height:1;">{{ repair_log_pending_count }}</span>
     </a>
     <a class="standard-nav-link {% if active_page == 'import_export' %}active{% endif %}" href="/import-export">Import/Export</a>
     <a class="standard-nav-link {% if active_page == 'reports' %}active{% endif %}" href="/reports">Reports</a>

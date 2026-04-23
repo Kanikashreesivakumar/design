@@ -504,6 +504,7 @@ canvas:hover {
 
             <div class="table-section">
                 <h2 class="section-title">Current Month Plan</h2>
+                {% if current_month_plan_by_type %}
                 {% for trolley_type, records in current_month_plan_by_type.items() %}
                 <div id="table-{{ trolley_type }}" class="trolley-section">
                     <h3 class="chart-title">{{ trolley_type }} Maintenance Schedule</h3>
@@ -537,6 +538,26 @@ canvas:hover {
                     </table>
                 </div>
                 {% endfor %}
+                {% else %}
+                <div class="trolley-section">
+                    <h3 class="chart-title">No current month plan found</h3>
+                    <table class="trolley-table">
+                        <thead>
+                            <tr>
+                                <th>Trolley Name</th>
+                                <th>Last Maintenance</th>
+                                <th>TPM Category</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="4" style="text-align:center; padding:18px;">No plan data is available for the current month.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>

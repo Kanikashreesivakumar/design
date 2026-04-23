@@ -666,6 +666,11 @@ def get_tpm_counts():
     conn = sqlite3.connect(DB_FILE)
     df = pd.read_sql('SELECT * FROM rfid_log', conn)
     conn.close()
+
+    if 'trolley_name' in df.columns:
+        df['trolley_name'] = df['trolley_name'].fillna('').astype(str).str.strip()
+        df = df[df['trolley_name'] != ''].copy()
+
     df['tpm_category'] = df['tpm_category'].str.lower().str.strip()
     df['trolley_type'] = df['trolley_name'].str.replace(r'\d+', '', regex=True).str.strip()
 
@@ -691,6 +696,10 @@ def show_dashboard():
         df = pd.read_sql('SELECT * FROM rfid_log', conn)
         conn.close()
 
+        if 'trolley_name' in df.columns:
+            df['trolley_name'] = df['trolley_name'].fillna('').astype(str).str.strip()
+            df = df[df['trolley_name'] != ''].copy()
+
         # Check required columns (unchanged)
         required_columns = {'previous_completed_date', 'uid', 'due_date', 'trolley_name', 'entry_date', 'entry_time',
                             'tpm_category', 'exit_date', 'exit_time', 'concern'}
@@ -706,7 +715,7 @@ def show_dashboard():
 
         # Extract trolley type (unchanged)
         df['trolley_type'] = df['trolley_name'].str.replace(r'\d+', '', regex=True).str.strip()
-        trolley_types = df['trolley_type'].unique()
+        trolley_types = [trolley for trolley in df['trolley_type'].dropna().unique() if str(trolley).strip()]
 
         # 1. Original Monthly Plan/Actual Calculation (EXACTLY as in original)
         df['month_year'] = df['previous_completed_date'].dt.to_period('M').astype(str)
@@ -752,6 +761,9 @@ def show_dashboard():
             (df['due_date'].dt.month == current_month) &
             (df['due_date'].dt.year == current_year)
             ]
+        fallback_plan = df[df['due_date'].notna()].sort_values('due_date').copy()
+        if current_month_plan.empty and not fallback_plan.empty:
+            current_month_plan = fallback_plan
 
         # 4. Original Concern Calculation (EXACTLY as in original)
         concern_chart = {
@@ -832,6 +844,8 @@ def show_dashboard():
                     if pd.notna(record['previous_completed_date']):
                         record['previous_completed_date'] = record['previous_completed_date'].strftime('%Y-%m-%d')
                 current_month_plan_by_type[trolley] = records
+            else:
+                current_month_plan_by_type[trolley] = []
 
         #  ORIGINAL COUNT CALCULATIONS
         now = datetime.now()
@@ -1745,6 +1759,11 @@ def get_repair_log_pending_count():
     except Exception as e:
         print(f" Error getting repair log count: {e}")
         return 0
+
+
+@app.context_processor
+def inject_repair_log_pending_count():
+    return {'repair_log_pending_count': get_repair_log_pending_count()}
 
 if __name__ == '__main__':
     create_tables()

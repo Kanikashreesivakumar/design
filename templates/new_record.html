@@ -22,24 +22,12 @@
       border: 2px solid #e0eafc;
       box-shadow: 0 8px 40px 0 rgba(31, 38, 135, 0.12);
     }
-    .nav-btn {
-      margin-right: 8px;
-      margin-bottom: 8px;
-    }
   </style>
 </head>
 <body>
+  {% set active_page = 'new_record' %}
   <div class="page-wrap">
-    <div class="d-flex flex-wrap mb-3">
-      <a class="btn btn-outline-dark nav-btn" href="/records">Records</a>
-      <a class="btn btn-outline-dark nav-btn" href="/dashboard">Dashboard</a>
-      <a class="btn btn-outline-dark nav-btn" href="/repair-log">Repair Log</a>
-      <a class="btn btn-outline-dark nav-btn" href="/import-export">Import/Export</a>
-      <a class="btn btn-outline-dark nav-btn" href="/reports">Reports</a>
-      <a class="btn btn-primary nav-btn" href="/new-record">New Record</a>
-      <a class="btn btn-outline-dark nav-btn" href="/repair-entry">Repair Entry</a>
-      <a class="btn btn-outline-dark nav-btn" href="/settings">Settings</a>
-    </div>
+    {% include '_standard_nav.html' %}
 
     <h2 class="mb-3">Create New RFID Log Record</h2>
 

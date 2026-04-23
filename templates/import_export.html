@@ -29,17 +29,9 @@
   </style>
 </head>
 <body>
+  {% set active_page = 'import_export' %}
   <div class="page-wrap">
-    <div class="d-flex flex-wrap mb-3">
-      <a class="btn btn-outline-dark nav-btn" href="/records">Records</a>
-      <a class="btn btn-outline-dark nav-btn" href="/dashboard">Dashboards</a>
-      <a class="btn btn-outline-dark nav-btn" href="/repair-log">Repair Log</a>
-      <a class="btn btn-primary nav-btn" href="/import-export">Import/Export</a>
-      <a class="btn btn-outline-dark nav-btn" href="/reports">Reports</a>
-      <a class="btn btn-outline-dark nav-btn" href="/new-record">New Records</a>
-      <a class="btn btn-outline-dark nav-btn" href="/repair-entry">Repair Entry</a>
-      <a class="btn btn-outline-dark nav-btn" href="/settings">Settings</a>
-    </div>
+    {% include '_standard_nav.html' %}
 
     <h2 class="mb-3">Import / Export</h2>
 

@@ -466,6 +466,10 @@ document.addEventListener('visibilitychange', function() {
   </div>
 </div>
 
+{% set active_page = 'records' %}
+{% set repair_count = pending_count %}
+{% include '_standard_nav.html' %}
+
 {% with messages = get_flashed_messages() %}
   {% if messages %}
     <div class="flash-messages">
@@ -480,37 +484,7 @@ document.addEventListener('visibilitychange', function() {
 
 <div class="container-fluid mt-3">
   <div class="action-bar d-flex justify-content-between align-items-center flex-wrap gap-2">
-
-
     <div class="d-flex align-items-center gap-2 flex-wrap">
-
-      <form action="/dashboard" method="get" class="d-inline">
-        <button type="submit" class="btn btn-outline-dark">
-          <i class="bi bi-speedometer2 me-1"></i> Dashboard
-        </button>
-      </form>
-
-      <a href="/new-record" class="btn btn-outline-dark top-nav-link">
-        <i class="bi bi-plus-circle me-1"></i> New Record
-      </a>
-
-      <a href="/reports" class="btn btn-outline-dark top-nav-link">
-        <i class="bi bi-bar-chart-line me-1"></i> Reports
-      </a>
-
-      <a href="/import-export" class="btn btn-outline-dark top-nav-link">
-        <i class="bi bi-arrow-left-right me-1"></i> Import/Export
-      </a>
-
-      <a href="/settings" class="btn btn-outline-dark top-nav-link">
-        <i class="bi bi-gear me-1"></i> Settings
-      </a>
-
-      <a href="/repair-entry" class="btn btn-outline-dark top-nav-link">
-        <i class="bi bi-wrench-adjustable me-1"></i> Repair Entry
-      </a>
-
-      
 <form method="get" action="/records" class="d-flex align-items-center gap-2" id="filterForm" style="min-width: 340px;">
   <div class="d-flex flex-column" style="min-width: 220px;">
     <small class="text-muted" style="margin-left: 2px;">Trolley</small>
@@ -537,11 +511,6 @@ document.addEventListener('visibilitychange', function() {
     <i class="bi bi-download me-1"></i> Download
   </button>
       </form>
-      
-<a href="/repair-log" class="btn btn-outline-danger position-relative top-nav-link">
-  <i class="bi bi-wrench-adjustable me-1"></i> Repair Log
-  <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger{% if pending_count == 0 %} zero{% endif %}" id="repair-count-badge">{{ pending_count }}</span>
-</a>
 
     </div>
 

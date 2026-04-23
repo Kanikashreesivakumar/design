@@ -4,18 +4,10 @@
     <title>Update Record</title>
 <style>
     body {
+    {% set active_page = 'records' %}
         font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
         background: url("{{ url_for('static', filename='b.jpg') }}") center center fixed no-repeat;
-        background-size: cover;
-        margin: 0;
-        padding: 0;
-        min-height: 100vh;
-    }
-
-    .container {
-        max-width: 900px;           
-        min-height: 600px;          
-        background: rgba(255,255,255,0.97);
+    {% include '_standard_nav.html' %}
         margin: 60px auto 0 auto;  
         padding: 48px 60px 40px 60px;
         border-radius: 28px;
@@ -591,16 +583,7 @@ document.querySelector('form').addEventListener('submit', function(e) {
 </div>
 
 <div class="container">
-    <div class="nav-bar">
-        <a class="nav-btn" href="/records">Records</a>
-        <a class="nav-btn" href="/dashboard">Dashboard</a>
-        <a class="nav-btn" href="/repair-log">Repair Log</a>
-        <a class="nav-btn" href="/import-export">Import/Export</a>
-        <a class="nav-btn" href="/reports">Reports</a>
-        <a class="nav-btn" href="/new-record">New Record</a>
-        <a class="nav-btn" href="/repair-entry">Repair Entry</a>
-        <a class="nav-btn" href="/settings">Settings</a>
-    </div>
+    {% include '_standard_nav.html' %}
 
     <h2>Update Record for Trolley: {{ record.trolley_name }} (UID: {{ record.uid }})</h2>
 

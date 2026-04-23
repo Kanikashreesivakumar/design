@@ -29,17 +29,9 @@
   </style>
 </head>
 <body>
+  {% set active_page = 'repair_entry' %}
   <div class="page-wrap">
-    <div class="d-flex flex-wrap mb-3">
-      <a class="btn btn-outline-dark nav-btn" href="/records">Records</a>
-      <a class="btn btn-outline-dark nav-btn" href="/dashboard">Dashboard</a>
-      <a class="btn btn-outline-dark nav-btn" href="/repair-log">Repair Log</a>
-      <a class="btn btn-outline-dark nav-btn" href="/import-export">Import/Export</a>
-      <a class="btn btn-outline-dark nav-btn" href="/reports">Reports</a>
-      <a class="btn btn-outline-dark nav-btn" href="/new-record">New Record</a>
-      <a class="btn btn-primary nav-btn" href="/repair-entry">Repair Entry</a>
-      <a class="btn btn-outline-dark nav-btn" href="/settings">Settings</a>
-    </div>
+    {% include '_standard_nav.html' %}
 
     <h2 class="mb-3">Create Repair Log Entry</h2>
 

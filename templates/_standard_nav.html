@@ -1,0 +1,89 @@
+<style>
+  .standard-nav-wrap {
+    margin: 18px auto 24px;
+    max-width: 1400px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .standard-nav-bar {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 10px;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #e0eafc;
+    border-radius: 18px;
+    box-shadow: 0 8px 30px rgba(31, 38, 135, 0.08);
+    min-height: 76px;
+    height: 76px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+  }
+
+  .standard-nav-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    height: 46px;
+    padding: 0 1rem;
+    border-radius: 12px;
+    border: 1px solid #b9d2ea;
+    color: #2c3e50;
+    background: linear-gradient(180deg, #ffffff 0%, #f4f8fc 100%);
+    text-decoration: none;
+    font-weight: 600;
+    line-height: 1;
+    transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease, color 0.16s ease;
+    white-space: nowrap;
+    box-sizing: border-box;
+  }
+
+  .standard-nav-link:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(44, 62, 80, 0.12);
+    color: #16324f;
+  }
+
+  .standard-nav-link.active {
+    background: linear-gradient(90deg, #2c3e50 0%, #3e566f 100%);
+    color: #fff;
+    border-color: #2c3e50;
+    box-shadow: 0 8px 20px rgba(44, 62, 80, 0.18);
+  }
+
+  @media (max-width: 768px) {
+    .standard-nav-bar {
+      padding: 12px;
+      gap: 8px;
+    }
+
+    .standard-nav-link {
+      padding: 0 0.85rem;
+      font-size: 0.95rem;
+    }
+  }
+</style>
+
+<div class="standard-nav-wrap">
+  <div class="standard-nav-bar">
+    <a class="standard-nav-link {% if active_page == 'records' %}active{% endif %}" href="/records">Records</a>
+    <a class="standard-nav-link {% if active_page == 'dashboard' %}active{% endif %}" href="/dashboard">Dashboard</a>
+    <a class="standard-nav-link {% if active_page == 'repair_log' %}active{% endif %}" href="/repair-log">
+      Repair Log
+      {% if repair_count is defined and repair_count is not none %}
+        <span style="display:inline-flex;align-items:center;justify-content:center;min-width:1.6rem;height:1.6rem;margin-left:8px;padding:0 0.45rem;border-radius:999px;background:#d9534f;color:#fff;font-size:0.82rem;line-height:1;">{{ repair_count }}</span>
+      {% endif %}
+    </a>
+    <a class="standard-nav-link {% if active_page == 'import_export' %}active{% endif %}" href="/import-export">Import/Export</a>
+    <a class="standard-nav-link {% if active_page == 'reports' %}active{% endif %}" href="/reports">Reports</a>
+    <a class="standard-nav-link {% if active_page == 'new_record' %}active{% endif %}" href="/new-record">New Record</a>
+    <a class="standard-nav-link {% if active_page == 'repair_entry' %}active{% endif %}" href="/repair-entry">Repair Entry</a>
+    <a class="standard-nav-link {% if active_page == 'settings' %}active{% endif %}" href="/settings">Settings</a>
+  </div>
+</div>

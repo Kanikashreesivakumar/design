@@ -3,26 +3,48 @@ import sqlite3
 import os
 import time
 from datetime import datetime
+from pathlib import Path
 
-DB_FILE = 'database.db'
+APP_DIR = Path(__file__).resolve().parent
+DB_FILE = str(APP_DIR / 'database.db')
 
 def sync_excel_to_database():
-    """Sync Excel to Database - Run separately from website"""
+    """Sync Excel to Database - upsert repair rows by id while preserving actions."""
     try:
-        excel_path = r"G:\kitkart\REPAIR_LOG_LOCAL.xlsx"
+        excel_path = r"E:\kitkart\design\REPAIR_LOG_LOCAL.xlsx"
         
         if not os.path.exists(excel_path):
             print(f"❌ Excel file not found: {excel_path}")
             return
 
         print(f"📁 Reading Excel file: {excel_path}")
-        df_excel = pd.read_excel(excel_path, engine='openpyxl')
+        with pd.ExcelFile(excel_path, engine='openpyxl') as xls:
+            df_excel = pd.DataFrame()
+            for sheet in xls.sheet_names:
+                candidate = pd.read_excel(xls, sheet_name=sheet, engine='openpyxl')
+                if not candidate.empty:
+                    print(f"📄 Using sheet: {sheet} → {len(candidate)} rows")
+                    df_excel = candidate
+                    break
 
         if df_excel.empty:
             print("⚠️ Excel file is empty")
             return
 
         print(f"📊 Loaded {len(df_excel)} records from Excel")
+
+        df_excel = df_excel.copy()
+        df_excel.columns = [str(col).strip().lower() for col in df_excel.columns]
+
+        if 'id' not in df_excel.columns:
+            print("❌ No 'Id' column found")
+            return
+
+        df_excel['id'] = df_excel['id'].fillna('').astype(str).str.strip()
+        df_excel = df_excel[df_excel['id'] != '']
+        if df_excel.empty:
+            print("⚠️ No valid repair-log ids found in Excel")
+            return
 
         # Connect to SQLite
         conn = sqlite3.connect(DB_FILE)
@@ -42,45 +64,24 @@ def sync_excel_to_database():
         except Exception as e:
             print(f"⚠️ Could not read existing action data: {e}")
 
-        # Map Excel columns
-        if 'Id' in df_excel.columns:
-            df_excel['id'] = df_excel['Id'].fillna('').astype(str)
-        elif 'id' in df_excel.columns:
-            df_excel['id'] = df_excel['id'].fillna('').astype(str)
-        else:
-            print("❌ No 'Id' column found")
-            conn.close()
-            return
+        def pick_column(possible_names):
+            for name in possible_names:
+                if name in df_excel.columns:
+                    return df_excel[name].fillna('').astype(str)
+            return pd.Series([''] * len(df_excel), index=df_excel.index)
 
-        # Map columns
-        mapped_data = {}
-        column_mappings = {
-            'id': 'id',
-            'name': 'name',
-            'trolley number': 'trolley_number',
-            'zone': 'zone',
-            'concern': 'concern_description',
-            'mobile number': 'email',
-            'completion time': 'completion_time'
-        }
-
-        for excel_col in df_excel.columns:
-            col_lower = excel_col.lower().strip()
-            for excel_pattern, db_col in column_mappings.items():
-                if excel_pattern in col_lower:
-                    mapped_data[db_col] = df_excel[excel_col].fillna('').astype(str)
-                    print(f"✅ Mapped '{excel_col}' → '{db_col}'")
-                    break
-
-        # Add missing columns
-        required_columns = ['id', 'trolley_number', 'concern_description', 'completion_time',
-                            'action_taken_by', 'action_time', 'action_status', 'email', 'name', 'zone']
-        for col in required_columns:
-            if col not in mapped_data:
-                mapped_data[col] = [''] * len(df_excel)
-
-        # Create final dataframe
-        final_df = pd.DataFrame(mapped_data)
+        final_df = pd.DataFrame({
+            'id': df_excel['id'],
+            'trolley_number': pick_column(['trolley number', 'trolley_number', 'trolley no', 'trolley']),
+            'concern_description': pick_column(['concern description', 'concern', 'concern_description']),
+            'completion_time': pick_column(['completion time', 'completion_time']),
+            'action_taken_by': pick_column(['action taken by', 'action_taken_by']),
+            'action_time': pick_column(['action time', 'action_time']),
+            'action_status': pick_column(['action status', 'action_status']),
+            'email': pick_column(['mobile number', 'email']),
+            'name': pick_column(['name']),
+            'zone': pick_column(['zone']),
+        })
 
         # Preserve action data
         preserved = 0
@@ -99,7 +100,18 @@ def sync_excel_to_database():
 
         # Clean and save to database
         final_df = final_df.replace(['None', 'nan', 'NaT', 'null'], '').fillna('')
-        final_df.to_sql('repair_log', conn, if_exists='replace', index=False)
+        upsert_columns = ['id', 'trolley_number', 'concern_description', 'completion_time',
+                          'action_taken_by', 'action_time', 'action_status', 'email', 'name', 'zone']
+        placeholders = ', '.join(['?'] * len(upsert_columns))
+        update_clause = ', '.join([f'{col}=excluded.{col}' for col in upsert_columns if col != 'id'])
+        insert_sql = (
+            f"INSERT INTO repair_log ({', '.join(upsert_columns)}) "
+            f"VALUES ({placeholders}) "
+            f"ON CONFLICT(id) DO UPDATE SET {update_clause}"
+        )
+        rows_to_write = [tuple(final_df[col].iloc[idx] for col in upsert_columns) for idx in range(len(final_df))]
+        c.executemany(insert_sql, rows_to_write)
+        conn.commit()
         conn.close()
 
         print(f"✅ Synced {len(final_df)} records to database successfully")

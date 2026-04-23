@@ -26,11 +26,12 @@ import sqlite3
 app = Flask(__name__)
 app.secret_key = "your_secret_key"
 
-DB_FILE = 'database.db'
+APP_DIR = Path(__file__).resolve().parent
+DB_FILE = str(APP_DIR / 'database.db')
 
-SETTINGS_FILE = Path("settings.json")
+SETTINGS_FILE = APP_DIR / "settings.json"
 DEFAULT_SETTINGS = {
-    "repair_excel_path": r"G:\\kitkart\\REPAIR_LOG_LOCAL.xlsx",
+    "repair_excel_path": r"E:\\kitkart\\design\\REPAIR_LOG_LOCAL.xlsx",
 }
 
 
@@ -889,7 +890,7 @@ def get_username(rfid):
 
 
 drive_file_path = r"C:\Users\TANSAM-2\OneDrive\FINAL REPAIR LOG.xlsx"
-local_file_path = r"G:\kitkart\REPAIR_LOG_LOCAL.xlsx"
+local_file_path = r"E:\kitkart\design\REPAIR_LOG_LOCAL.xlsx"
 
 
 def load_first_nonempty_sheet(file_path):
@@ -1490,7 +1491,14 @@ def sync_excel_to_sqlite():
             return
 
         print(f" Reading Excel file: {excel_path}")
-        df_excel = pd.read_excel(excel_path, engine='openpyxl')
+        with pd.ExcelFile(excel_path, engine='openpyxl') as xls:
+            df_excel = pd.DataFrame()
+            for sheet in xls.sheet_names:
+                candidate = pd.read_excel(xls, sheet_name=sheet, engine='openpyxl')
+                if not candidate.empty:
+                    print(f" Using sheet: {sheet} → {len(candidate)} rows")
+                    df_excel = candidate
+                    break
         sync_repair_df_to_sqlite(df_excel)
 
     except Exception as e:
@@ -1500,84 +1508,96 @@ def sync_excel_to_sqlite():
 
 
 def sync_repair_df_to_sqlite(df_excel: pd.DataFrame):
-    """Core repair-log sync: add NEW rows only, preserve action columns."""
+    """Core repair-log sync: upsert rows by id while preserving action columns."""
     if df_excel is None or df_excel.empty:
         print("Excel data is empty")
         return
 
-    print(f" Excel contains {len(df_excel)} records")
+    df_excel = df_excel.copy()
+    df_excel.columns = [str(col).strip().lower() for col in df_excel.columns]
 
-    if 'Id' in df_excel.columns:
-        df_excel['id'] = df_excel['Id'].fillna('').astype(str)
-    elif 'id' in df_excel.columns:
-        df_excel['id'] = df_excel['id'].fillna('').astype(str)
-    else:
+    if 'id' not in df_excel.columns:
         print("No 'Id' column in Excel")
+        return
+
+    df_excel['id'] = df_excel['id'].fillna('').astype(str).str.strip()
+    df_excel = df_excel[df_excel['id'] != '']
+    if df_excel.empty:
+        print("No valid repair-log ids found in Excel")
         return
 
     create_tables()
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
 
-    existing_ids = set()
+    existing_actions = {}
     try:
-        c.execute('SELECT id FROM repair_log')
-        existing_ids = {str(row[0]) for row in c.fetchall()}
-        print(f"Found {len(existing_ids)} existing records in database")
+        c.execute('SELECT id, action_taken, action_taken_by, action_time, action_status FROM repair_log')
+        for row in c.fetchall():
+            existing_actions[str(row[0]).strip()] = {
+                'action_taken': row[1],
+                'action_taken_by': row[2],
+                'action_time': row[3],
+                'action_status': row[4],
+            }
+        print(f"Found {len(existing_actions)} existing records in database")
     except Exception as e:
-        print(f"Could not read existing IDs: {e}")
+        print(f"Could not read existing repair actions: {e}")
 
-    excel_ids = set(df_excel['id'].astype(str))
-    new_ids = excel_ids - existing_ids
+    def pick_column(possible_names):
+        for name in possible_names:
+            if name in df_excel.columns:
+                return df_excel[name].fillna('').astype(str)
+        return pd.Series([''] * len(df_excel), index=df_excel.index)
 
-    if not new_ids:
-        print(" No new records to add - all Excel records already exist in database")
-        conn.close()
-        return
+    final_df = pd.DataFrame({
+        'id': df_excel['id'],
+        'trolley_number': pick_column(['trolley number', 'trolley_number', 'trolley no', 'trolley']),
+        'concern_description': pick_column(['concern description', 'concern', 'concern_description']),
+        'completion_time': pick_column(['completion time', 'completion_time']),
+        'email': pick_column(['mobile number', 'email']),
+        'name': pick_column(['name']),
+        'zone': pick_column(['zone']),
+        'action_taken': pick_column(['action taken', 'action_taken']),
+        'action_taken_by': pick_column(['action taken by', 'action_taken_by']),
+        'action_time': pick_column(['action time', 'action_time']),
+        'action_status': pick_column(['action status', 'action_status']),
+    })
 
-    new_records_df = df_excel[df_excel['id'].isin(new_ids)]
-    print(f"Found {len(new_records_df)} NEW records to add")
+    preserved_actions = 0
+    for idx, row in final_df.iterrows():
+        rid = str(row['id']).strip()
+        action_row = existing_actions.get(rid)
+        if not action_row:
+            continue
+        for col in ('action_taken', 'action_taken_by', 'action_time', 'action_status'):
+            if action_row.get(col) not in (None, ''):
+                final_df.at[idx, col] = action_row.get(col)
+        preserved_actions += 1
 
-    mapped_data = {}
-    column_mappings = {
-        'id': 'id',
-        'completion time': 'completion_time',
-        'name': 'name',
-        'mobile number': 'email',
-        'trolley number': 'trolley_number',
-        'concern': 'concern_description',
-        'concern description': 'concern_description',
-        'zone': 'zone'
-    }
+    final_df = final_df.replace(['None', 'nan', 'NaT', 'null'], '').fillna('')
 
-    for excel_col in new_records_df.columns:
-        col_lower = str(excel_col).lower().strip()
-        for pattern, db_col in column_mappings.items():
-            if pattern == col_lower:
-                mapped_data[db_col] = new_records_df[excel_col].fillna('').astype(str)
-                break
+    upsert_columns = ['id', 'trolley_number', 'concern_description', 'completion_time',
+                      'action_taken', 'action_taken_by', 'action_time', 'action_status',
+                      'email', 'name', 'zone']
+    placeholders = ', '.join(['?'] * len(upsert_columns))
+    update_clause = ', '.join([f'{col}=excluded.{col}' for col in upsert_columns if col != 'id'])
+    insert_sql = (
+        f"INSERT INTO repair_log ({', '.join(upsert_columns)}) "
+        f"VALUES ({placeholders}) "
+        f"ON CONFLICT(id) DO UPDATE SET {update_clause}"
+    )
 
-    required_columns = ['id', 'trolley_number', 'concern_description', 'completion_time',
-                        'action_taken_by', 'action_time', 'action_status', 'email', 'name', 'zone']
-    for col in required_columns:
-        if col not in mapped_data:
-            mapped_data[col] = [''] * len(new_records_df)
-
-    new_records_final = pd.DataFrame(mapped_data)
-    new_records_final['action_taken_by'] = ''
-    new_records_final['action_time'] = ''
-    new_records_final['action_status'] = ''
-    new_records_final = new_records_final.replace(['None', 'nan', 'NaT', 'null'], '').fillna('')
-
-    new_records_final.to_sql('repair_log', conn, if_exists='append', index=False)
+    rows_to_write = [tuple(final_df[col].iloc[idx] for col in upsert_columns) for idx in range(len(final_df))]
+    c.executemany(insert_sql, rows_to_write)
+    conn.commit()
     conn.close()
-
-    print(f"Successfully added {len(new_records_final)} new records to database")
-    print("Existing records and their action data were completely untouched")
+    print(f"Successfully synced {len(final_df)} repair rows to database")
+    print(f"Preserved existing action data for {preserved_actions} matching records")
 
 
 def sync_repair_excel_bytes_to_sqlite(excel_bytes: bytes):
-    """Sync uploaded repair-log Excel bytes into SQLite (adds NEW rows only)."""
+    """Sync uploaded repair-log Excel bytes into SQLite with upserts by id."""
     if not excel_bytes:
         print("No file bytes provided")
         return

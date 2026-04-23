@@ -42,7 +42,7 @@ else:
     print(f" File not found: {username_file}")
 
 # ========== TABLE 4: REPAIR_LOG_LOCAL.xlsx ==========
-repair_file = r"G:\kitkart\New folder\REPAIR_LOG_LOCAL.xlsx"
+repair_file = r"E:\kitkart\design\REPAIR_LOG_LOCAL.xlsx"
 if Path(repair_file).exists():
     try:
         xls = pd.ExcelFile(repair_file, engine='openpyxl')

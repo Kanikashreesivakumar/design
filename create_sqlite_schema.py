@@ -8,7 +8,7 @@ from pathlib import Path
 uid_file = r"G:\kitkart\New folder\uid_number.xlsx"
 log_file = r"G:\kitkart\New folder\rfid_log.xlsx"
 user_file = r"G:\kitkart\New folder\USERNAME.xlsx"
-repair_log_file = r"G:\kitkart\New folder\REPAIR_LOG_LOCAL.xlsx" 
+repair_log_file = r"E:\kitkart\design\REPAIR_LOG_LOCAL.xlsx" 
 
 
 conn = sqlite3.connect("database.db")
@@ -40,7 +40,14 @@ except Exception as e:
     print(f" Failed to import usernames: {e}")
 
 try:
-    repair_df = pd.read_excel(repair_log_file)
+    xls = pd.ExcelFile(repair_log_file, engine='openpyxl')
+    repair_df = pd.DataFrame()
+    for sheet in xls.sheet_names:
+        candidate = pd.read_excel(xls, sheet_name=sheet, engine='openpyxl')
+        if not candidate.empty:
+            repair_df = candidate
+            print(f" Sheet: {sheet} → {len(candidate)} rows, {candidate.shape[1]} columns")
+            break
     repair_df.columns = [col.strip().lower().replace(" ", "_") for col in repair_df.columns]
     repair_df.to_sql("repair_log", conn, if_exists="replace", index=False)
     print(f" Imported: repair_log → {len(repair_df)} rows")

@@ -2,13 +2,21 @@
 <html>
 <head>
     <title>Update Record</title>
+{% set active_page = 'records' %}
 <style>
     body {
-    {% set active_page = 'records' %}
         font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
         background: url("{{ url_for('static', filename='b.jpg') }}") center center fixed no-repeat;
-    {% include '_standard_nav.html' %}
-        margin: 60px auto 0 auto;  
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+    }
+
+    .container {
+        max-width: 900px;
+        min-height: 600px;
+        background: rgba(255, 255, 255, 0.97);
+        margin: 60px auto 0 auto;
         padding: 48px 60px 40px 60px;
         border-radius: 28px;
         box-shadow: 0 12px 48px 0 rgba(31, 38, 135, 0.18);
@@ -291,13 +299,6 @@
                 console.error(err);
             });
     }
-    document.getElementById("rfidInput").addEventListener("keydown", function(event) {
-        if (event.key === "Enter") {
-            event.preventDefault(); 
-            submitRFID();
-        }
-    });
-
     function getTrolleyCategory() {
         const selectElement = document.querySelector('select[name="trolley_category"]');
         if (selectElement) return selectElement.value;
@@ -309,32 +310,21 @@
     }
 
     function updateRemarksDropdown() {
-        const trolleyCategory = getTrolleyCategory();
         const remarksDropdown = document.getElementById('tpm_category');
         const currentValue = remarksDropdown.value;
 
-        const previousDateInput = document.querySelector('input[name="previous_completed_date"]');
-        const isUidAssigned = previousDateInput && previousDateInput.readOnly;
+        const normalizedCurrentValue = currentValue === 'Complete Check' ? 'Secondary Check' : currentValue;
 
         remarksDropdown.innerHTML = '<option value="">Select</option>';
 
-        if (isUidAssigned) {
-            remarksDropdown.innerHTML += `<option value="Repair">Repair</option>`;
-        } else if (trolleyCategory === "Synchro") {
-            remarksDropdown.innerHTML += `
-                <option value="Complete Check For Synchro">Complete Check</option>
-                <option value="Repair">Repair</option>
-            `;
-        } else {
-            remarksDropdown.innerHTML += `
-                <option value="Primary Check">Primary Check</option>
-                <option value="Complete Check">Complete Check</option>
-                <option value="Repair">Repair</option>
-            `;
-        }
+        remarksDropdown.innerHTML += `
+            <option value="Primary Check">Primary Check</option>
+            <option value="Secondary Check">Secondary Check</option>
+            <option value="Repair">Repair</option>
+        `;
 
-        if (remarksDropdown.querySelector(`option[value="${currentValue}"]`)) {
-            remarksDropdown.value = currentValue;
+        if (remarksDropdown.querySelector(`option[value="${normalizedCurrentValue}"]`)) {
+            remarksDropdown.value = normalizedCurrentValue;
         }
 
         updateCheckpoints();
@@ -399,7 +389,7 @@
     function getCheckpointHTML(remark, trolleyCategory) {
         let checkboxes = '';
 
-        if (remark === 'Primary Check' || (remark === 'Complete Check' && trolleyCategory !== 'Synchro')) {
+        if (remark === 'Primary Check' || (remark === 'Complete Check' && trolleyCategory !== 'Synchro') || (remark === 'Secondary Check' && trolleyCategory !== 'Synchro')) {
             const primaryItems = [
                 "Check the bearings",
                 "Check front wheels",
@@ -422,7 +412,7 @@
 
             checkboxes = primaryItems.map((item, index) => createCheckboxItem(item, index)).join('');
 
-            if (remark === 'Complete Check') {
+            if (remark === 'Complete Check' || remark === 'Secondary Check') {
                 checkboxes += completeItems.map((item, index) =>
                     createCheckboxItem(item, index + primaryItems.length)).join('');
             }
@@ -520,45 +510,57 @@
 
         updateRemarksDropdown();
     });
- 
-document.querySelector('form').addEventListener('submit', function(e) {
-
-    const checkPoints = Array.from(document.querySelectorAll('[name^="check_points["]')).map(el => el.value.trim()).filter(Boolean);
-    const concerns = Array.from(document.querySelectorAll('[name^="concerns["]')).map(el => el.value.trim()).filter(Boolean);
-    const actions = Array.from(document.querySelectorAll('[name^="actions_taken["]')).map(el => el.value.trim()).filter(Boolean);
-
-
-    let cp = document.getElementById('check_point');
-    let cc = document.getElementById('concern');
-    let ac = document.getElementById('action_taken');
-    if (!cp) {
-        cp = document.createElement('input');
-        cp.type = 'text';
-        cp.name = 'check_point';
-        cp.id = 'visible_check_point';
-        cp.readOnly = true; 
-        this.appendChild(cp);
+    const rfidInput = document.getElementById("rfidInput");
+    if (rfidInput) {
+        rfidInput.addEventListener("keydown", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault(); 
+                submitRFID();
+            }
+        });
     }
-    if (!cc) {
-        cc = document.createElement('input');
-        cc.type = 'text';
-        cc.name = 'concern';
-        cc.id = 'visible_concern';
-        cc.readOnly = true;
-        this.appendChild(cc);
+
+    const updateForm = document.querySelector('form');
+    if (updateForm) {
+        updateForm.addEventListener('submit', function(e) {
+
+            const checkPoints = Array.from(document.querySelectorAll('[name^="check_points["]')).map(el => el.value.trim()).filter(Boolean);
+            const concerns = Array.from(document.querySelectorAll('[name^="concerns["]')).map(el => el.value.trim()).filter(Boolean);
+            const actions = Array.from(document.querySelectorAll('[name^="actions_taken["]')).map(el => el.value.trim()).filter(Boolean);
+
+
+            let cp = document.getElementById('check_point');
+            let cc = document.getElementById('concern');
+            let ac = document.getElementById('action_taken');
+            if (!cp) {
+                cp = document.createElement('input');
+                cp.type = 'text';
+                cp.name = 'check_point';
+                cp.id = 'visible_check_point';
+                cp.readOnly = true; 
+                this.appendChild(cp);
+            }
+            if (!cc) {
+                cc = document.createElement('input');
+                cc.type = 'text';
+                cc.name = 'concern';
+                cc.id = 'visible_concern';
+                cc.readOnly = true;
+                this.appendChild(cc);
+            }
+            if (!ac) {
+                ac = document.createElement('input');
+                ac.type = 'text'; 
+                ac.name = 'action_taken';
+                ac.id = 'visible_action_taken';
+                ac.readOnly = true;
+                this.appendChild(ac);
+            }
+            cp.value = checkPoints.join(',');
+            cc.value = concerns.join(',');
+            ac.value = actions.join(',');
+        });
     }
-    if (!ac) {
-        ac = document.createElement('input');
-        ac.type = 'text'; 
-        ac.name = 'action_taken';
-        ac.id = 'visible_action_taken';
-        ac.readOnly = true;
-        this.appendChild(ac);
-    }
-    cp.value = checkPoints.join(',');
-    cc.value = concerns.join(',');
-    ac.value = actions.join(',');
-});
 </script>
 
 <body>
@@ -631,15 +633,9 @@ document.querySelector('form').addEventListener('submit', function(e) {
             <label>TPM Category:</label>
             <select name="tpm_category" id="tpm_category" required onchange="updateCheckpoints()">
                 <option value="">Select</option>
-                {% if allow_all_remarks %}
-                 
-                    <option value="Primary Check" {% if current_remark == 'primary check' %}selected{% endif %}>Primary Check</option>
-                    <option value="Complete Check" {% if current_remark == 'complete check' %}selected{% endif %}>Complete Check</option>
-                    <option value="Repair" {% if current_remark == 'repair' %}selected{% endif %}>Repair</option>
-                {% else %}
-                 
-                    <option value="Repair" {% if current_remark == 'repair' %}selected{% endif %}>Repair</option>
-                {% endif %}
+                <option value="Primary Check" {% if current_remark == 'primary check' %}selected{% endif %}>Primary Check</option>
+                <option value="Secondary Check" {% if current_remark == 'secondary check' %}selected{% endif %}>Secondary Check</option>
+                <option value="Repair" {% if current_remark == 'repair' %}selected{% endif %}>Repair</option>
             </select>
         </div>
 

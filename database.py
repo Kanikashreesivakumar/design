@@ -301,7 +301,7 @@ def get_latest_check_record(ws, uid, exclude_id=None):
         if row[1].value == uid and (exclude_id is None or row[0].value != exclude_id):
             remark = str(row[7].value) if row[7].value else ""
 
-            if remark in ['Primary Check', 'Complete Check','Complete Check For Synchro']:
+            if remark in ['Primary Check', 'Secondary Check', 'Complete Check', 'Complete Check For Synchro']:
                 completed_date = row[10].value
 
                 if isinstance(completed_date, str):
@@ -345,7 +345,7 @@ def update_record(record_id):
 
     c.execute('''
         SELECT * FROM rfid_log
-        WHERE uid=? AND id!=? AND tpm_category IN ('Primary Check', 'Complete Check', 'Complete Check For Synchro')
+        WHERE uid=? AND id!=? AND tpm_category IN ('Primary Check', 'Secondary Check', 'Complete Check', 'Complete Check For Synchro')
         ORDER BY previous_completed_date DESC LIMIT 1
     ''', (record_data['uid'], record_id))
     latest_check_row = c.fetchone()
@@ -353,8 +353,8 @@ def update_record(record_id):
 
     next_check_type = None
     if latest_remark == 'Primary Check':
-        next_check_type = 'Complete Check'
-    elif latest_remark == 'Complete Check':
+        next_check_type = 'Secondary Check'
+    elif latest_remark in ['Secondary Check', 'Complete Check']:
         next_check_type = 'Primary Check'
 
    
@@ -369,7 +369,7 @@ def update_record(record_id):
 
     now = datetime.now()
 
-    allow_all_remarks = days_left is None or days_left <= 7
+    allow_all_remarks = True
 
     allow_edit_trolley = not (latest_check_row and latest_check_row['trolley_category'])
 
@@ -427,7 +427,7 @@ def update_record(record_id):
             'exit_time': exit_time
         }
 
-        if remarks_input in ['Primary Check', 'Complete Check', 'Complete Check For Synchro']:
+        if remarks_input in ['Primary Check', 'Secondary Check', 'Complete Check', 'Complete Check For Synchro']:
             previous_completed_date_input = request.form.get('previous_completed_date')
             try:
                 completed_date = datetime.strptime(previous_completed_date_input, '%Y-%m-%d').date()
@@ -1385,7 +1385,7 @@ def new_record_page():
         due_date = None
         prev_completed = None
 
-        if tpm_category in ['Primary Check', 'Complete Check', 'Complete Check For Synchro']:
+        if tpm_category in ['Primary Check', 'Secondary Check', 'Complete Check', 'Complete Check For Synchro']:
             if not previous_completed_date:
                 flash('Previous completed date is required for check types.')
                 return redirect(url_for('new_record_page'))
